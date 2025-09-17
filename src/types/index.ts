@@ -31,6 +31,9 @@ export interface UserInstance {
   
   // RabbitMQ configuration
   rabbitmq_config: RabbitMQConfig;
+
+  // WhatsApp configuration
+  whatsapp_config: WhatsappConfig;
 }
 
 export interface ProxyConfig {
@@ -49,6 +52,7 @@ export interface S3Config {
   public_url: string;
   media_delivery: string;
   retention_days: number;
+  disable_acl: boolean;
 }
 
 export interface RabbitMQConfig {
@@ -65,6 +69,24 @@ export interface RabbitMQConfig {
   exclusive: boolean;
   no_wait: boolean;
   delivery_mode: number;
+}
+
+export interface WhatsappConfig {
+  wa_version: string;
+  wa_platform: string;
+  wa_release_channel: string;
+  wa_web_sub_platform: string;
+  wa_os_name: string;
+  wa_os_version: string;
+  wa_device_name: string;
+  wa_manufacturer: string;
+  wa_device_board: string;
+  wa_locale_language: string;
+  wa_locale_country: string;
+  wa_mcc: string;
+  wa_mnc: string;
+  wa_connect_type: string;
+  wa_platform_type: string;
 }
 
 // Group Types
@@ -348,6 +370,7 @@ export interface SessionStatus {
   proxy_config: ProxyConfig;
   s3_config: S3Config;
   rabbitmq_config: RabbitMQConfig;
+  whatsapp_config: WhatsappConfig;
 }
 
 // Webhook Types

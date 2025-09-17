@@ -26,12 +26,15 @@ import { useAuthStore } from "@/store/auth-store"
 
 const createInstanceSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  token: z.string().min(1, "Token is required"),
   webhook: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  events: z.string().min(1, "Events separeted for , like 'Message,ReadReceipt,Connected'").optional().or(z.literal("")),
   skip_groups: z.boolean(),
   skip_newsletters: z.boolean(),
   skip_broadcasts: z.boolean(),
   skip_own_messages: z.boolean(),
   skip_media_download: z.boolean(),
+  skip_calls: z.boolean(),
 })
 
 type CreateInstanceFormData = z.infer<typeof createInstanceSchema>
@@ -61,6 +64,7 @@ export function CreateInstanceDialog({ children }: CreateInstanceDialogProps) {
       skip_broadcasts: false,
       skip_own_messages: false,
       skip_media_download: false,
+      skip_calls: false,
     },
   })
 
@@ -73,11 +77,13 @@ export function CreateInstanceDialog({ children }: CreateInstanceDialogProps) {
       const instance = await apiClient.createUser({
         name: data.name,
         webhook: data.webhook || "",
+        events: data.events || "",
         skip_groups: data.skip_groups,
         skip_newsletters: data.skip_newsletters,
         skip_broadcasts: data.skip_broadcasts,
         skip_own_messages: data.skip_own_messages,
         skip_media_download: data.skip_media_download,
+        skip_calls: data.skip_calls, 
       })
 
       toast.success("Instance created successfully")

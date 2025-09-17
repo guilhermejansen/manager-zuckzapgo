@@ -119,6 +119,7 @@
       "publicUrlPlaceholder": "https://cdn.exemplo.com",
       "mediaDelivery": "Entrega de Mídia",
       "retentionDays": "Dias de Retenção",
+      "disableACL": "Desabilitar ACL",
       "testConnection": "Testar Conexão"
     },
     "rabbitmq": {
@@ -139,6 +140,26 @@
       "noWait": "No Wait",
       "deliveryMode": "Modo de Entrega",
       "testConnection": "Testar Conexão"
+    },
+    "whatsapp": {
+      "title": "Configuração WhatsApp",
+      "subtitle": "Configure a instância WhatsApp",
+      "enabled": "Habilitar WhatsApp",
+      "version": "Versão do WhatsApp",
+      "platform": "Plataforma",
+      "releaseChannel": "Canal de Lançamento",
+      "webSubPlatform": "Plataforma Web Sub",
+      "osName": "Nome do Sistema Operacional",
+      "osVersion": "Versão do Sistema Operacional",
+      "deviceName": "Nome do Dispositivo",
+      "manufacturer": "Fabricante",
+      "deviceBoard": "Board do Dispositivo",
+      "localeLanguage": "Idioma",
+      "localeCountry": "País",
+      "mcc": "MCC",
+      "mnc": "MNC",
+      "connectType": "Tipo de Conexão",
+      "platformType": "Tipo de Plataforma"
     },
     "skips": {
       "title": "Configuração de Filtros",
@@ -433,6 +454,7 @@
         "webhook": "Webhook",
         "rabbitmq": "RabbitMQ",
         "s3": "S3 Storage",
+        "whatsapp": "WhatsApp",
         "skip": "Configurações Skip"
       }
     }
@@ -587,6 +609,7 @@
         "proxy": "Proxy",
         "s3": "S3 Storage",
         "rabbitmq": "RabbitMQ",
+        "whatsapp": "WhatsApp",
         "skip": "Skip",
         "security": "Segurança"
       },
@@ -612,7 +635,8 @@
         "accessKey": "Access Key",
         "secretKey": "Secret Key",
         "region": "Região",
-        "testConnection": "Testar Conexão"
+        "testConnection": "Testar Conexão",
+        "disableACL": "Desabilitar ACL"
       },
       "rabbitmq": {
         "enabled": "RabbitMQ Habilitado",
@@ -756,6 +780,7 @@
         "proxy": "Proxy",
         "s3": "S3",
         "rabbitmq": "RabbitMQ",
+        "whatsapp": "WhatsApp",
         "events": "Eventos",
         "expiration": "Expiração",
         "actions": "Ações"
@@ -790,7 +815,8 @@
         "withWebhook": "Com Webhook",
         "withProxy": "Com Proxy",
         "withS3": "Com S3",
-        "withRabbitMQ": "Com RabbitMQ"
+        "withRabbitMQ": "Com RabbitMQ",
+        "withWhatsApp": "Com WhatsApp"
       },
       "actions": {
         "view": "Ver",
@@ -834,6 +860,7 @@
         "proxy": "Proxy",
         "s3Storage": "Armazenamento S3",
         "rabbitMQ": "RabbitMQ",
+        "whatsapp": "WhatsApp",
         "enabled": "Habilitado",
         "disabled": "Desabilitado"
       },
@@ -887,6 +914,7 @@
         "proxy": "Proxy",
         "s3Storage": "Armazenamento S3",
         "rabbitMQ": "RabbitMQ",
+        "whatsapp": "WhatsApp",
         "enabled": "Habilitado",
         "disabled": "Desabilitado"
       },
