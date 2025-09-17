@@ -1,0 +1,34 @@
+{
+  "name": "ZuckZapGo",
+  "version": "1.0.0",
+  "icon": "/favicon.ico",
+  "devtools": {
+    "theme": "dark",
+    "enableSourceMaps": true,
+    "enableNetworkPersistence": true,
+    "enableConsoleTimestamps": true,
+    "enablePerformanceAnalysis": true
+  },
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Acessar Dashboard Principal"
+    },
+    {
+      "name": "API Docs",
+      "url": "/api/swagger",
+      "description": "Documentação da API"
+    }
+  ],
+  "debugging": {
+    "enableVerboseLogging": false,
+    "enableNetworkLogging": true,
+    "enablePerformanceLogging": true
+  },
+  "features": {
+    "enableWebsockets": true,
+    "enableServiceWorker": false,
+    "enablePWA": true
+  }
+} 

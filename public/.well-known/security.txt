@@ -1,0 +1,18 @@
+Contact: contato@setupautomatizado.com.br
+Contact: https://setupautomatizado.com.br/contato
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://setupautomatizado.com.br/pgp-key.txt
+Preferred-Languages: pt-BR, en
+Canonical: https://zuckzapgo.com/.well-known/security.txt
+Policy: https://setupautomatizado.com.br/security-policy
+Hiring: https://setupautomatizado.com.br/careers
+
+# ZuckZapGo Security Contact Information
+# 
+# Se você encontrar vulnerabilidades de segurança, por favor:
+# 1. Entre em contato através dos canais oficiais acima
+# 2. NÃO divulgue publicamente antes de receber uma resposta
+# 3. Forneça detalhes técnicos suficientes para reproduzir o problema
+# 4. Aguarde nossa resposta em até 48 horas
+#
+# Agradecemos sua responsabilidade em divulgar vulnerabilidades! 

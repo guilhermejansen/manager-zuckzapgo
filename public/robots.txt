@@ -1,0 +1,43 @@
+# ZuckZapGo - Robots.txt
+# https://zuckzapgo.com/robots.txt
+
+User-agent: *
+Allow: /
+Allow: /pt/
+Allow: /en/
+Allow: /es/
+
+# Desallow areas privadas
+Disallow: /admin/
+Disallow: /instance/
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+
+# Permitir arquivos importantes
+Allow: /favicon.ico
+Allow: /manifest.json
+Allow: /.well-known/
+
+# Sitemap
+Sitemap: https://zuckzapgo.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
+
+# Specific bots
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: / 
