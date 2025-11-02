@@ -1,0 +1,189 @@
+# ==============================================================================
+# Docker Compose Configuration for Production
+# Manager ZuckZapGo - Next.js 16 Application
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:18
+    container_name: manager-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-manager_zuckzapgo}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - manager-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # Redis Cache & Queue
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7
+    container_name: manager-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - manager-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # Next.js Application
+  # ----------------------------------------------------------------------------
+  manager-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    image: manager-zuckzapgo:latest
+    container_name: manager-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      # Node.js
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-manager_zuckzapgo}?schema=public
+
+      # Redis
+      REDIS_URL: redis://redis:6379
+
+      # API Configuration
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_TIMEOUT: ${NEXT_PUBLIC_API_TIMEOUT:-30000}
+      NEXT_PUBLIC_API_RETRY_ATTEMPTS: ${NEXT_PUBLIC_API_RETRY_ATTEMPTS:-3}
+
+      # Logging
+      NEXT_PUBLIC_LOG_LEVEL: ${NEXT_PUBLIC_LOG_LEVEL:-info}
+      NEXT_PUBLIC_ENABLE_CONSOLE_LOGS: ${NEXT_PUBLIC_ENABLE_CONSOLE_LOGS:-true}
+      NEXT_PUBLIC_LOG_FORMAT: ${NEXT_PUBLIC_LOG_FORMAT:-json}
+
+      # Timezone
+      TZ: ${TZ:-America/Sao_Paulo}
+    networks:
+      - manager-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ----------------------------------------------------------------------------
+  # BullMQ Workers
+  # ----------------------------------------------------------------------------
+  manager-workers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    image: manager-zuckzapgo:latest
+    container_name: manager-workers
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      manager-app:
+        condition: service_healthy
+    command:
+      [
+        "node",
+        "--require",
+        "./node_modules/ts-node/register/transpile-only",
+        "./lib/queue/start-workers.ts",
+      ]
+    environment:
+      # Node.js
+      NODE_ENV: production
+
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-manager_zuckzapgo}?schema=public
+
+      # Redis
+      REDIS_URL: redis://redis:6379
+
+      # Worker Configuration
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-50}
+      CAMPAIGN_WORKER_CONCURRENCY: ${CAMPAIGN_WORKER_CONCURRENCY:-5}
+      MESSAGE_RATE_LIMIT_MAX: ${MESSAGE_RATE_LIMIT_MAX:-100}
+      MESSAGE_RATE_LIMIT_DURATION: ${MESSAGE_RATE_LIMIT_DURATION:-1000}
+
+      # API Configuration
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_TIMEOUT: ${NEXT_PUBLIC_API_TIMEOUT:-30000}
+
+      # Logging
+      NEXT_PUBLIC_LOG_LEVEL: ${NEXT_PUBLIC_LOG_LEVEL:-info}
+      NEXT_PUBLIC_ENABLE_CONSOLE_LOGS: ${NEXT_PUBLIC_ENABLE_CONSOLE_LOGS:-true}
+      NEXT_PUBLIC_LOG_FORMAT: ${NEXT_PUBLIC_LOG_FORMAT:-json}
+
+      # Timezone
+      TZ: ${TZ:-America/Sao_Paulo}
+    networks:
+      - manager-network
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep -q 'start-workers' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  manager-network:
+    driver: bridge
+    name: manager-network
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+volumes:
+  postgres_data:
+    driver: local
+    name: manager_postgres_data
+  redis_data:
+    driver: local
+    name: manager_redis_data

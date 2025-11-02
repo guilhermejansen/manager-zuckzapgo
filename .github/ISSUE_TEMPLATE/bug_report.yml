@@ -1,0 +1,127 @@
+name: 🐛 Relatório de Bug
+description: Relate um bug ou comportamento inesperado
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar um bug! Por favor, preencha as informações abaixo para nos ajudar a resolver o problema.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do Bug
+      description: Uma descrição clara e concisa do bug.
+      placeholder: O que aconteceu?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para Reproduzir
+      description: Passos detalhados para reproduzir o comportamento.
+      placeholder: |
+        1. Vá para '...'
+        2. Clique em '...'
+        3. Role até '...'
+        4. Veja o erro
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento Esperado
+      description: Uma descrição clara do que você esperava que acontecesse.
+      placeholder: O que deveria acontecer?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento Atual
+      description: Uma descrição clara do que realmente aconteceu.
+      placeholder: O que aconteceu?
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Se aplicável, adicione screenshots para ajudar a explicar o problema.
+      placeholder: Cole ou arraste imagens aqui
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade
+      description: Quão grave é este bug?
+      options:
+        - Crítico - Sistema não funciona
+        - Alto - Funcionalidade importante quebrada
+        - Médio - Funcionalidade menor afetada
+        - Baixo - Problema cosmético/visual
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versão
+      description: Em qual versão do Manager ZuckZapGo você encontrou este bug?
+      placeholder: v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Navegador
+      description: Em qual navegador o bug ocorre?
+      multiple: true
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Outro
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema Operacional
+      description: Qual sistema operacional você está usando?
+      placeholder: Windows 11, macOS 14, Ubuntu 22.04, etc.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs Relevantes
+      description: Cole quaisquer logs relevantes aqui.
+      render: shell
+      placeholder: |
+        Cole logs do console, erros do servidor, etc.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto Adicional
+      description: Adicione qualquer outro contexto sobre o problema aqui.
+      placeholder: Qualquer informação adicional que possa ajudar
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Por favor, confirme os itens abaixo
+      options:
+        - label: Eu procurei por issues similares e não encontrei duplicatas
+          required: true
+        - label: Eu verifiquei a documentação e não encontrei solução
+          required: true
+        - label: Eu incluí todas as informações necessárias acima
+          required: true

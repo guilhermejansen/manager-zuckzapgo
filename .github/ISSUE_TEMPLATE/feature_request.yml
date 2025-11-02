@@ -1,0 +1,115 @@
+name: ✨ Solicitação de Funcionalidade
+description: Sugira uma nova funcionalidade ou melhoria
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por sugerir uma nova funcionalidade! Por favor, preencha as informações abaixo.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema a Resolver
+      description: Descreva o problema que esta funcionalidade resolveria.
+      placeholder: |
+        Qual é o problema ou necessidade que você está enfrentando?
+        Por exemplo: "Eu sempre fico frustrado quando..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solução Proposta
+      description: Descreva a solução que você gostaria de ver implementada.
+      placeholder: |
+        Como você imagina que esta funcionalidade deveria funcionar?
+        Seja o mais específico possível.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas Consideradas
+      description: Descreva quaisquer soluções ou funcionalidades alternativas que você considerou.
+      placeholder: Existem outras formas de resolver este problema?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridade
+      description: Quão importante é esta funcionalidade para você?
+      options:
+        - Alta - Bloqueador ou muito importante
+        - Média - Seria muito útil
+        - Baixa - Seria legal ter
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoria
+      description: Em qual área esta funcionalidade se encaixa?
+      options:
+        - Campanhas
+        - Instâncias
+        - Dashboard
+        - API/Integrações
+        - Interface/UX
+        - Performance
+        - Segurança
+        - Documentação
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups ou Exemplos
+      description: Se aplicável, adicione mockups, wireframes ou exemplos visuais.
+      placeholder: Cole ou arraste imagens aqui
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Caso de Uso
+      description: Descreva um cenário específico de como esta funcionalidade seria usada.
+      placeholder: |
+        Exemplo:
+        1. Como usuário, eu quero...
+        2. Para que eu possa...
+        3. Assim...
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-details
+    attributes:
+      label: Detalhes Técnicos (Opcional)
+      description: Se você tem conhecimento técnico, compartilhe ideias sobre a implementação.
+      placeholder: Sugestões sobre arquitetura, bibliotecas, APIs, etc.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto Adicional
+      description: Adicione qualquer outro contexto ou informação sobre a solicitação.
+      placeholder: Links, referências, exemplos de outros sistemas, etc.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Por favor, confirme os itens abaixo
+      options:
+        - label: Eu procurei por solicitações similares e não encontrei duplicatas
+          required: true
+        - label: Esta funcionalidade se alinha com os objetivos do projeto
+          required: true
+        - label: Eu forneci informações suficientes sobre o caso de uso
+          required: true

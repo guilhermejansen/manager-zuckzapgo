@@ -1,0 +1,67 @@
+name: ❓ Pergunta/Dúvida
+description: Faça uma pergunta ou tire uma dúvida
+title: "[Pergunta]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tem uma dúvida sobre o Manager ZuckZapGo? Estamos aqui para ajudar!
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Sua Pergunta
+      description: Descreva sua dúvida de forma clara e objetiva.
+      placeholder: O que você gostaria de saber?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoria da Pergunta
+      description: Sobre qual área é sua dúvida?
+      options:
+        - Instalação/Configuração
+        - Uso/Funcionalidades
+        - API/Integrações
+        - Docker/Deploy
+        - Troubleshooting
+        - Desenvolvimento
+        - Documentação
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-tried
+    attributes:
+      label: O que Você Já Tentou
+      description: Descreva o que você já tentou para resolver ou entender.
+      placeholder: |
+        - Li a documentação sobre...
+        - Tentei fazer...
+        - Pesquisei sobre...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto Adicional
+      description: Adicione qualquer contexto que possa ajudar a responder sua pergunta.
+      placeholder: |
+        - Ambiente (desenvolvimento/produção)
+        - Versão do Manager ZuckZapGo
+        - Caso de uso específico
+        - Screenshots ou logs
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Por favor, confirme os itens abaixo
+      options:
+        - label: Eu procurei na documentação e não encontrei a resposta
+          required: true
+        - label: Eu procurei por perguntas similares nas issues
+          required: true

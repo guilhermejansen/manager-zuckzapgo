@@ -1,0 +1,146 @@
+# ==============================================================================
+# Docker Ignore File
+# Excludes files from Docker build context for faster builds
+# ==============================================================================
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next
+out
+dist
+build
+
+# Testing
+coverage
+.nyc_output
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+__mocks__
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env*.local
+!.env.production
+
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# IDEs and editors
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings
+.factorypath
+
+# Documentation
+README.md
+README-*.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+docs/
+*.md
+!package.json
+CODE_STYLE.md
+LOGGER_GUIDE.md
+ADMIN_PAGES_IMPLEMENTATION.md
+CAMPAIGNS_MODULE_PLAN.md
+CAMPAIGNS_DEVELOPMENT_RULES.md
+CAMPAIGN_STATUS_REPORT.md
+
+# Docker files (not needed inside container)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+.circleci
+azure-pipelines.yml
+Jenkinsfile
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp
+.cache
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Prisma
+# Keep schema and migrations, but exclude generated client
+# The client will be regenerated during build
+.prisma
+
+# Optional: Keep these for development reference
+# But they're not needed in production build
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!public/**/*
+
+# TypeScript
+*.tsbuildinfo
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Misc
+.prettierrc
+.eslintrc.json
+.editorconfig
+tsconfig.json
+postcss.config.mjs
+tailwind.config.ts
+
+# Scripts (will be copied explicitly if needed)
+scripts/
+!scripts/wait-for-it.sh

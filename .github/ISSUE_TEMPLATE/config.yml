@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentação
+    url: https://github.com/guilhermejansen/zuckzapgo-private/tree/main/manager-zuckzapgo#readme
+    about: Consulte a documentação completa do projeto
+  - name: 💬 Discussões
+    url: https://github.com/guilhermejansen/zuckzapgo-private/discussions
+    about: Participe de discussões com a comunidade
