@@ -68,13 +68,7 @@ services:
     image: setupautomatizado/manager-zuckzapgo:latest
     networks:
       - network_public
-    command:
-      [
-        "node",
-        "--require",
-        "./node_modules/ts-node/register/transpile-only",
-        "./lib/queue/start-workers.ts",
-      ]
+    command: ["node", "dist/workers/lib/queue/start-workers.js"]
     environment:
       # Node.js
       NODE_ENV: production
