@@ -137,9 +137,6 @@ desktop.ini
 .prettierrc
 .eslintrc.json
 .editorconfig
-tsconfig.json
-postcss.config.mjs
-tailwind.config.ts
 
 # Scripts (will be copied explicitly if needed)
 scripts/
