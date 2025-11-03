@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.4.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.4.0...v1.4.1) (2025-11-03)
+
+### 🐛 Correções de Bugs
+
+* **ci:** corrigir README do Docker Hub e adicionar links nos releases (e97e38acc855fbefc39f073ed6f5527fa07b2a2e)
+
 ## [1.4.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.3.0...v1.4.0) (2025-11-03)
 
 ### ✨ Novas Funcionalidades
