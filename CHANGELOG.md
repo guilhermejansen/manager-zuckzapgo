@@ -1,3 +1,17 @@
+# Changelog
+
+Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
+e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+
+## [1.2.2](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.2.1...v1.2.2) (2025-11-03)
+
+### 🐛 Correções de Bugs
+
+* restaurar semantic-release com npm plugin e emojis ([65bf966](https://github.com/guilhermejansen/manager-zuckzapgo/commit/65bf96638e9ff3717aba8760880e5ba65c1c5578))
+* usar workflow_run para acionar Docker build após releases ([711b75b](https://github.com/guilhermejansen/manager-zuckzapgo/commit/711b75b2a187ed045e9c00a60b6f4513fb04667f))
+
 ## [1.2.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.2.0...v1.2.1) (2025-11-03)
 
 ### Bug Fixes
