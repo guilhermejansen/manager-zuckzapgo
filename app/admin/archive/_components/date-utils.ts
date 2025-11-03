@@ -8,7 +8,7 @@ const ARCHIVE_DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 })
 
-function parseDate(input?: string | null): Date | null {
+export function parseArchiveDate(input?: string | null): Date | null {
   if (!input) return null
 
   const date = new Date(input)
@@ -21,9 +21,9 @@ function parseDate(input?: string | null): Date | null {
 
 export function resolveArchivedAt(event: ArchiveEvent): Date | null {
   return (
-    parseDate(event.archived_at) ||
-    parseDate(event.delivered_at) ||
-    parseDate(event.created_at)
+    parseArchiveDate(event.archived_at) ||
+    parseArchiveDate(event.delivered_at) ||
+    parseArchiveDate(event.created_at)
   )
 }
 
@@ -33,6 +33,6 @@ export function formatArchiveEventDate(event: ArchiveEvent): string {
 }
 
 export function formatArchiveDateString(dateString?: string | null): string {
-  const date = parseDate(dateString)
+  const date = parseArchiveDate(dateString)
   return date ? ARCHIVE_DATE_FORMATTER.format(date) : "—"
 }

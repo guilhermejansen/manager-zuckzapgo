@@ -2,7 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { Check, CheckCircle2, ChevronsUpDown, Eye, PlayCircle, Trash2, XCircle } from "lucide-react"
+import {
+  Calendar as CalendarIcon,
+  Check,
+  CheckCircle2,
+  ChevronsUpDown,
+  Eye,
+  PlayCircle,
+  Trash2,
+  XCircle,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -34,13 +43,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Calendar } from "@/components/ui/calendar"
 import { adminApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { endOfDay, startOfDay } from "date-fns"
 import type { ArchiveEvent, ArchiveListParams } from "@/types"
 import { EVENT_LABELS, SUPPORTED_EVENTS, type SupportedEvent } from "@/types/constants"
 
 import { EventDetailsDialog } from "./event-details-dialog"
-import { formatArchiveEventDate } from "./date-utils"
+import { formatArchiveEventDate, parseArchiveDate } from "./date-utils"
+
+const DATE_FILTER_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+})
+
+function formatDateFilterLabel(date: Date | null): string {
+  return date ? DATE_FILTER_FORMATTER.format(date) : ""
+}
 
 interface EventsTabProps {
   events: ArchiveEvent[]
@@ -77,6 +98,9 @@ export function EventsTab({
   const [transportValue, setTransportValue] = useState(filters.transport ?? "")
   const [userIdValue, setUserIdValue] = useState(filters.user_id ?? "")
   const [transportOpen, setTransportOpen] = useState(false)
+
+  const fromDate = useMemo(() => parseArchiveDate(filters.from_date), [filters.from_date])
+  const toDate = useMemo(() => parseArchiveDate(filters.to_date), [filters.to_date])
 
   const filtersRef = useRef(filters)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -197,6 +221,45 @@ export function EventsTab({
       user_id: userIdValue,
       offset: 0,
     })
+  }
+
+  const handleDateFilterChange = (type: "from" | "to", date?: Date) => {
+    const nextFilters: ArchiveListParams = {
+      ...filtersRef.current,
+      transport: transportValue,
+      user_id: userIdValue,
+      offset: 0,
+    }
+
+    if (type === "from") {
+      if (date) {
+        const start = startOfDay(date)
+        nextFilters.from_date = start.toISOString()
+
+        const currentToDate = parseArchiveDate(nextFilters.to_date)
+        if (currentToDate && start.getTime() > currentToDate.getTime()) {
+          const end = endOfDay(date)
+          nextFilters.to_date = end.toISOString()
+        }
+      } else {
+        nextFilters.from_date = undefined
+      }
+    } else {
+      if (date) {
+        const end = endOfDay(date)
+        nextFilters.to_date = end.toISOString()
+
+        const currentFromDate = parseArchiveDate(nextFilters.from_date)
+        if (currentFromDate && end.getTime() < currentFromDate.getTime()) {
+          const start = startOfDay(date)
+          nextFilters.from_date = start.toISOString()
+        }
+      } else {
+        nextFilters.to_date = undefined
+      }
+    }
+
+    onFilterChange(nextFilters)
   }
 
   return (
@@ -353,6 +416,94 @@ export function EventsTab({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* From Date Filter */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="from-date-filter" className="text-xs">
+                Data Inicial
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="from-date-filter"
+                    variant="outline"
+                    className={cn(
+                      "w-[160px] justify-start text-left font-normal",
+                      !fromDate && "text-muted-foreground"
+                    )}
+                    title={fromDate ? formatDateFilterLabel(fromDate) : "Selecionar data inicial"}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fromDate ? formatDateFilterLabel(fromDate) : "Data inicial"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-3">
+                    <Calendar
+                      mode="single"
+                      selected={fromDate ?? undefined}
+                      onSelect={(date) => handleDateFilterChange("from", date ?? undefined)}
+                      initialFocus
+                      disabled={(date) => Boolean(toDate && date > toDate)}
+                    />
+                    {fromDate && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => handleDateFilterChange("from", undefined)}
+                      >
+                        Limpar data
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* To Date Filter */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="to-date-filter" className="text-xs">
+                Data Final
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="to-date-filter"
+                    variant="outline"
+                    className={cn(
+                      "w-[160px] justify-start text-left font-normal",
+                      !toDate && "text-muted-foreground"
+                    )}
+                    title={toDate ? formatDateFilterLabel(toDate) : "Selecionar data final"}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {toDate ? formatDateFilterLabel(toDate) : "Data final"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-3">
+                    <Calendar
+                      mode="single"
+                      selected={toDate ?? undefined}
+                      onSelect={(date) => handleDateFilterChange("to", date ?? undefined)}
+                      initialFocus
+                      disabled={(date) => Boolean(fromDate && date < fromDate)}
+                    />
+                    {toDate && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => handleDateFilterChange("to", undefined)}
+                      >
+                        Limpar data
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
