@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:workers": "tsc -p tsconfig.workers.json",
+    "postbuild": "npm run build:workers",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
@@ -13,6 +15,7 @@
     "format:all": "npm run format && npm run lint:fix",
     "check": "npm run format:check && npm run lint",
     "workers": "tsx lib/queue/start-workers.ts",
+    "workers:prod": "node dist/workers/lib/queue/start-workers.js",
     "prepare": "husky",
     "postinstall": "prisma generate"
   },
