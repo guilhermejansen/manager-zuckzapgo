@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getInterpretedStatus, getStatusBadgeClass } from "@/lib/monitoring-status"
 import { cn } from "@/lib/utils"
 import type { MonitoringEvent, MonitoringHistoryParams } from "@/types"
 
@@ -62,25 +63,6 @@ const STATUS_OPTIONS = [
   { label: "Falhos", value: "failed" },
 ]
 
-const statusStyles: Record<string, { badge: string; label: string }> = {
-  delivered: {
-    badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100",
-    label: "Delivered",
-  },
-  processing: {
-    badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-100",
-    label: "Processing",
-  },
-  pending: {
-    badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-100",
-    label: "Pending",
-  },
-  failed: {
-    badge: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-100",
-    label: "Failed",
-  },
-}
-
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "2-digit",
@@ -101,11 +83,6 @@ function formatTimeValue(date: Date | null) {
   const hours = String(date.getHours()).padStart(2, "0")
   const minutes = String(date.getMinutes()).padStart(2, "0")
   return `${hours}:${minutes}`
-}
-
-function formatStatusLabel(status?: string) {
-  if (!status) return "N/A"
-  return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
 export function HistorySection({
@@ -139,11 +116,6 @@ export function HistorySection({
       const parsed = Number(value)
       if (!Number.isNaN(parsed)) {
         ;(nextFilters as Record<string, unknown>)[name] = parsed
-      }
-    } else if (name === "since_time") {
-      const iso = fromInputDate(value)
-      if (iso) {
-        nextFilters.since_time = iso
       }
     } else {
       ;(nextFilters as Record<string, unknown>)[name] = value
@@ -467,10 +439,7 @@ export function HistorySection({
                   </TableHeader>
                   <TableBody>
                     {events.map((event) => {
-                      const style = statusStyles[event.status] ?? {
-                        badge: "bg-muted text-foreground",
-                        label: formatStatusLabel(event.status),
-                      }
+                      const interpreted = getInterpretedStatus(event)
 
                       return (
                         <TableRow key={`${event.id}-${event.updated_at}`}>
@@ -484,15 +453,27 @@ export function HistorySection({
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              className={cn(
-                                "text-xs font-medium capitalize",
-                                style.badge,
-                                "px-2 py-0.5"
-                              )}
-                            >
-                              {style.label}
-                            </Badge>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge className={cn("text-xs font-medium", getStatusBadgeClass(interpreted))}>
+                                    <span className="mr-1">{interpreted.icon}</span>
+                                    {interpreted.label}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-xs">{interpreted.description}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Confiança: {interpreted.confidence === "high" ? "Alta" : interpreted.confidence === "medium" ? "Média" : "Baixa"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Status DB: {event.status}
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline" className="text-xs font-semibold">
@@ -525,10 +506,7 @@ export function HistorySection({
 
               <div className="space-y-4 md:hidden">
                 {events.map((event) => {
-                  const style = statusStyles[event.status] ?? {
-                    badge: "bg-muted text-foreground",
-                    label: formatStatusLabel(event.status),
-                  }
+                  const interpreted = getInterpretedStatus(event)
 
                   return (
                     <div
@@ -545,9 +523,27 @@ export function HistorySection({
                             {event.user_id || "—"}
                           </span>
                         </div>
-                        <Badge className={cn("text-xs font-medium capitalize", style.badge)}>
-                          {style.label}
-                        </Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge className={cn("text-xs font-medium", getStatusBadgeClass(interpreted))}>
+                                <span className="mr-1">{interpreted.icon}</span>
+                                {interpreted.label}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-medium text-xs">{interpreted.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Confiança: {interpreted.confidence === "high" ? "Alta" : interpreted.confidence === "medium" ? "Média" : "Baixa"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Status DB: {event.status}
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
 
                       <div className="space-y-2 text-xs">

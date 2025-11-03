@@ -34,10 +34,8 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 function buildStreamUrl(streamUrl: string, filters: MonitoringEventFilter, sessionToken: string) {
-  const base =
-    typeof window === "undefined"
-      ? process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-      : process.env.NEXT_PUBLIC_API_URL || window.location.origin
+  // ALWAYS use backend URL directly for SSE (EventSource cannot go through Next.js proxy)
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
   const url = new URL(streamUrl, base.endsWith("/") ? base : `${base}/`)
   url.searchParams.set("session", sessionToken)
@@ -83,6 +81,9 @@ export default function MonitoringPage() {
   const eventSourceRef = useRef<EventSource | null>(null)
   const bufferRef = useRef<MonitoringEvent[]>([])
   const streamPausedRef = useRef(false)
+  const reconnectAttemptsRef = useRef(0)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const manualStopRef = useRef(false)
 
   useEffect(() => {
     streamPausedRef.current = streamPaused
@@ -179,23 +180,46 @@ export default function MonitoringPage() {
     return () => clearInterval(id)
   }, [autoRefreshHistory, loadHistory])
 
-  const stopStream = useCallback(() => {
+  const stopStream = useCallback((manual = false) => {
+    console.log("🛑 Stopping stream, manual:", manual)
+    manualStopRef.current = manual
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
+
     setStreaming(false)
     setStreamConnecting(false)
     setStreamPaused(false)
+
+    if (manual) {
+      reconnectAttemptsRef.current = 0
+    }
   }, [])
 
-  const startStream = useCallback(async () => {
+  const startStream = useCallback(async (isReconnect = false) => {
     if (streaming || streamConnecting) return
+
+    // Reset manual stop flag when starting fresh
+    if (!isReconnect) {
+      manualStopRef.current = false
+      reconnectAttemptsRef.current = 0
+    }
+
     setStreamConnecting(true)
     setStreamError(null)
-    bufferRef.current = []
-    setStreamEvents([])
-    setStreamTotal(0)
+
+    if (!isReconnect) {
+      bufferRef.current = []
+      setStreamEvents([])
+      setStreamTotal(0)
+    }
 
     try {
       const session = await adminApi.monitoring.createSession(
@@ -208,31 +232,105 @@ export default function MonitoringPage() {
         session.session_token
       )
 
+      console.log(isReconnect ? "🔄 Reconnecting to SSE:" : "🔌 Connecting to SSE:", finalStreamUrl)
       const eventSource = new EventSource(finalStreamUrl)
       eventSourceRef.current = eventSource
       setStreamSession(session)
 
-      eventSource.onmessage = (event) => {
+      eventSource.onopen = () => {
+        console.log("✅ SSE Connection opened successfully")
+      }
+
+      // Universal event handler for ALL event types (Message, Connected, GroupInfo, etc.)
+      const handleSSEEvent = (event: MessageEvent) => {
+        console.log("📨 SSE Event received:", event.type, event.data.substring(0, 100))
         try {
           const parsed: MonitoringEvent = JSON.parse(event.data)
+          console.log("✅ Event parsed:", parsed.event_type)
           setStreamTotal((previous) => previous + 1)
           if (streamPausedRef.current) {
             bufferRef.current = [parsed, ...bufferRef.current].slice(0, STREAM_BUFFER_LIMIT)
             return
           }
           setStreamEvents((previous) => [parsed, ...previous].slice(0, STREAM_BUFFER_LIMIT))
-        } catch {
-          // Ignore malformed payloads
+        } catch (err) {
+          console.error("❌ Failed to parse SSE event:", err, event.data.substring(0, 200))
         }
       }
 
-      eventSource.onerror = () => {
-        setStreamError("Conexão interrompida. Tente iniciar o stream novamente.")
-        stopStream()
+      // Listen to ALL possible event types from backend (93 total)
+      const eventTypes = [
+        "Message", "UndecryptableMessage", "FBMessage", "Receipt", "MediaRetry", "ReadReceipt",
+        "Star", "Pin", "Archive", "Mute", "MarkChatAsRead", "ClearChat", "DeleteChat", "DeleteForMe",
+        "LabelAssociationChat", "LabelAssociationMessage", "LabelEdit", "GroupInfo", "JoinedGroup",
+        "Contact", "Picture", "PushName", "BusinessName", "UserAbout", "PrivacySettings",
+        "IdentityChange", "Blocklist", "BlocklistChange", "UserStatusMute", "Connected",
+        "Disconnected", "QR", "PairSuccess", "PairError", "QRScannedWithoutMultidevice",
+        "LoggedOut", "StreamReplaced", "StreamError", "ConnectFailure", "KeepAliveTimeout",
+        "KeepAliveRestored", "ManualLoginReconnect", "TemporaryBan", "ClientOutdated",
+        "CATRefreshError", "CallOffer", "CallAccept", "CallPreAccept", "CallTransport",
+        "CallTerminate", "CallReject", "CallOfferNotice", "CallRelayLatency", "UnknownCallEvent",
+        "Presence", "ChatPresence", "NewsletterJoin", "NewsletterLeave", "NewsletterMuteChange",
+        "NewsletterLiveUpdate", "AppState", "AppStateSyncComplete", "HistorySync",
+        "OfflineSyncPreview", "OfflineSyncCompleted", "PushNameSetting", "UnarchiveChatsSetting"
+      ]
+
+      eventTypes.forEach(type => {
+        eventSource.addEventListener(type, handleSSEEvent)
+      })
+
+      // Generic message handler (fallback for unnamed events)
+      eventSource.onmessage = (event) => {
+        console.log("📨 SSE Generic message received:", event.data.substring(0, 100))
+        handleSSEEvent(event)
+      }
+
+      eventSource.onerror = (err) => {
+        console.error("❌ SSE Error:", err, "ReadyState:", eventSource.readyState)
+
+        // Close the failed connection
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close()
+          eventSourceRef.current = null
+        }
+
+        setStreaming(false)
+        setStreamConnecting(false)
+
+        // Don't reconnect if manually stopped
+        if (manualStopRef.current) {
+          console.log("⏹️ Stream was manually stopped, not reconnecting")
+          setStreamError("Stream desconectado")
+          return
+        }
+
+        // Implement exponential backoff: 1s, 2s, 4s, 8s, 16s (max 5 attempts)
+        const maxAttempts = 5
+        const attempt = reconnectAttemptsRef.current
+
+        if (attempt >= maxAttempts) {
+          console.error("🚫 Max reconnection attempts reached")
+          setStreamError("Conexão perdida. Clique em 'Iniciar Stream' para reconectar.")
+          reconnectAttemptsRef.current = 0
+          return
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, attempt), 16000)
+        reconnectAttemptsRef.current += 1
+
+        console.log(`🔄 Reconnecting in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`)
+        setStreamError(`Reconectando em ${Math.ceil(delay / 1000)}s... (tentativa ${attempt + 1}/${maxAttempts})`)
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log("🔄 Attempting reconnection...")
+          void startStream(true)
+        }, delay)
       }
 
       setStreaming(true)
-      toast.success("Stream iniciado com sucesso")
+      reconnectAttemptsRef.current = 0 // Reset on successful connection
+      const message = isReconnect ? "Stream reconectado com sucesso" : "Stream iniciado com sucesso"
+      toast.success(message)
     } catch (error) {
       setStreamError(getErrorMessage(error, "Não foi possível iniciar o stream"))
       stopStream()
@@ -273,7 +371,130 @@ export default function MonitoringPage() {
       .catch(() => toast.error("Não foi possível copiar a URL do stream"))
   }, [streamSession, streamFilters])
 
-  useEffect(() => () => stopStream(), [stopStream])
+  // Auto-start stream on page load
+  useEffect(() => {
+    console.log("🚀 Page loaded - Auto-starting stream...", { streaming, streamConnecting })
+    if (!streaming && !streamConnecting) {
+      console.log("✅ Conditions met - Starting stream")
+      void startStream()
+    } else {
+      console.log("⏭️ Stream already active, skipping auto-start")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run once on mount
+
+  // Auto-renew session before TTL expires
+  useEffect(() => {
+    if (!streamSession || !streaming) return
+
+    console.log("⏰ Setting up auto-renewal timer for session:", streamSession.session_token)
+
+    const expiresAt = new Date(streamSession.expires_at).getTime()
+    const now = Date.now()
+    const timeUntilExpiry = expiresAt - now
+
+    console.log(`⏰ Session expires in ${Math.floor(timeUntilExpiry / 1000)}s, will renew in ${Math.floor((timeUntilExpiry * 0.8) / 1000)}s`)
+
+    // Renew at 80% of TTL (240 seconds for 300s TTL)
+    const renewThreshold = timeUntilExpiry * 0.8
+
+    if (renewThreshold <= 0) {
+      // Session already expired, restart stream
+      console.log("⚠️ Session already expired, restarting stream")
+      void startStream()
+      return
+    }
+
+    const renewTimer = setTimeout(async () => {
+      console.log("🔄 Auto-renewal triggered, creating new session...")
+      try {
+        // Create new session with same filters
+        const newSession = await adminApi.monitoring.createSession(
+          Object.keys(streamFilters).length ? { filters: streamFilters } : undefined
+        )
+
+        // Close old EventSource
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close()
+        }
+
+        // Create new EventSource with fresh session token
+        const finalStreamUrl = buildStreamUrl(
+          newSession.stream_url || "/admin/events/stream",
+          streamFilters,
+          newSession.session_token
+        )
+
+        console.log("🔄 Reconnecting to SSE with new session:", finalStreamUrl)
+        const eventSource = new EventSource(finalStreamUrl)
+        eventSourceRef.current = eventSource
+        setStreamSession(newSession)
+
+        eventSource.onopen = () => {
+          console.log("✅ SSE Reconnection successful")
+        }
+
+        // Universal event handler for ALL event types
+        const handleSSEEventRenewed = (event: MessageEvent) => {
+          console.log("📨 SSE Event received (renewed):", event.type, event.data.substring(0, 100))
+          try {
+            const parsed: MonitoringEvent = JSON.parse(event.data)
+            console.log("✅ Event parsed (renewed):", parsed.event_type)
+            setStreamTotal((previous) => previous + 1)
+            if (streamPausedRef.current) {
+              bufferRef.current = [parsed, ...bufferRef.current].slice(0, STREAM_BUFFER_LIMIT)
+              return
+            }
+            setStreamEvents((previous) => [parsed, ...previous].slice(0, STREAM_BUFFER_LIMIT))
+          } catch (err) {
+            console.error("❌ Failed to parse SSE event (renewed):", err)
+          }
+        }
+
+        // Re-attach event listeners for ALL event types (93 total)
+        const eventTypes = [
+          "Message", "UndecryptableMessage", "FBMessage", "Receipt", "MediaRetry", "ReadReceipt",
+          "Star", "Pin", "Archive", "Mute", "MarkChatAsRead", "ClearChat", "DeleteChat", "DeleteForMe",
+          "LabelAssociationChat", "LabelAssociationMessage", "LabelEdit", "GroupInfo", "JoinedGroup",
+          "Contact", "Picture", "PushName", "BusinessName", "UserAbout", "PrivacySettings",
+          "IdentityChange", "Blocklist", "BlocklistChange", "UserStatusMute", "Connected",
+          "Disconnected", "QR", "PairSuccess", "PairError", "QRScannedWithoutMultidevice",
+          "LoggedOut", "StreamReplaced", "StreamError", "ConnectFailure", "KeepAliveTimeout",
+          "KeepAliveRestored", "ManualLoginReconnect", "TemporaryBan", "ClientOutdated",
+          "CATRefreshError", "CallOffer", "CallAccept", "CallPreAccept", "CallTransport",
+          "CallTerminate", "CallReject", "CallOfferNotice", "CallRelayLatency", "UnknownCallEvent",
+          "Presence", "ChatPresence", "NewsletterJoin", "NewsletterLeave", "NewsletterMuteChange",
+          "NewsletterLiveUpdate", "AppState", "AppStateSyncComplete", "HistorySync",
+          "OfflineSyncPreview", "OfflineSyncCompleted", "PushNameSetting", "UnarchiveChatsSetting"
+        ]
+
+        eventTypes.forEach(type => {
+          eventSource.addEventListener(type, handleSSEEventRenewed)
+        })
+
+        // Generic message handler (fallback)
+        eventSource.onmessage = (event) => {
+          console.log("📨 SSE Generic message received (renewed):", event.data.substring(0, 100))
+          handleSSEEventRenewed(event)
+        }
+
+        eventSource.onerror = (err) => {
+          console.error("❌ SSE Error (renewed):", err, "ReadyState:", eventSource.readyState)
+          setStreamError("Conexão interrompida. Tente iniciar o stream novamente.")
+          stopStream()
+        }
+
+        toast.success("Sessão renovada automaticamente")
+      } catch (error) {
+        setStreamError(getErrorMessage(error, "Não foi possível renovar a sessão"))
+        stopStream()
+      }
+    }, renewThreshold)
+
+    return () => clearTimeout(renewTimer)
+  }, [streamSession, streaming, streamFilters, startStream, stopStream])
+
+  useEffect(() => () => stopStream(true), [stopStream])
 
   const clientList = useMemo(() => stats?.clients ?? [], [stats?.clients])
 
@@ -302,7 +523,7 @@ export default function MonitoringPage() {
 
   const totalCountForPagination = hasActiveFilters
     ? historyMeta.count
-    : statsTotalEvents ?? historyMeta.count ?? events.length
+    : statsTotalEvents ?? historyMeta.count ?? historyEvents.length
 
   const totalPages = (() => {
     if (hasActiveFilters) {
@@ -392,7 +613,7 @@ export default function MonitoringPage() {
             error={streamError}
             onFiltersChange={setStreamFilters}
             onStart={startStream}
-            onStop={stopStream}
+            onStop={() => stopStream(true)}
             onTogglePause={togglePause}
             onReset={resetStreamBuffer}
             onViewEvent={setSelectedEvent}
