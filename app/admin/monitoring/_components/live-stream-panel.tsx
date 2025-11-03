@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getInterpretedStatus, getStatusBadgeClass } from "@/lib/monitoring-status"
 import { cn } from "@/lib/utils"
 import type { MonitoringEvent, MonitoringEventFilter, MonitoringSessionToken } from "@/types"
 
@@ -44,13 +45,6 @@ interface LiveStreamPanelProps {
   onReset: () => void
   onViewEvent: (event: MonitoringEvent) => void
   onCopyStreamUrl: () => void
-}
-
-const STATUS_BADGE: Record<string, string> = {
-  delivered: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  processing: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  failed: "bg-red-500/10 text-red-600 border-red-500/20",
-  pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
 }
 
 function sanitizeFilters(filters: MonitoringEventFilter): MonitoringEventFilter {
@@ -144,14 +138,25 @@ export function LiveStreamPanel({
             <Badge
               variant={streaming ? "outline" : "secondary"}
               className={cn(
-                "gap-1 border-primary/30",
-                streaming ? "text-primary" : "text-muted-foreground"
+                "gap-1.5",
+                streaming
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"      // 🟢 Verde
+                  : connecting
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-600"          // 🟡 Amarelo
+                    : "border-red-500/30 bg-red-500/10 text-red-600"                // 🔴 Vermelho
               )}
             >
               <span
-                className={cn("h-2 w-2 rounded-full", streaming ? "bg-primary" : "bg-muted")}
-              ></span>
-              {streaming ? "Conectado" : connecting ? "Conectando" : "Desconectado"}
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  streaming
+                    ? "bg-emerald-500 animate-pulse"
+                    : connecting
+                      ? "bg-amber-500 animate-pulse"
+                      : "bg-red-500"
+                )}
+              />
+              {streaming ? "Conectado" : connecting ? "Conectando..." : "Desconectado"}
             </Badge>
             <Badge variant="outline" className="gap-1 text-xs">
               <Activity className="h-3 w-3" /> {totalReceived} eventos
@@ -356,15 +361,32 @@ export function LiveStreamPanel({
                         </Badge>
                         <span className="break-all">{event.event_type}</span>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs capitalize shrink-0",
-                          STATUS_BADGE[event.status?.toLowerCase?.() ?? ""]
-                        )}
-                      >
-                        {event.status}
-                      </Badge>
+{(() => {
+                        const interpreted = getInterpretedStatus(event)
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className={cn("shrink-0", getStatusBadgeClass(interpreted))}>
+                                  <span className="mr-1">{interpreted.icon}</span>
+                                  {interpreted.label}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="space-y-1">
+                                  <p className="font-medium">{interpreted.description}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Confiança: {interpreted.confidence === "high" ? "Alta" : interpreted.confidence === "medium" ? "Média" : "Baixa"}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Status DB: {event.status}
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )
+                      })()}
                     </div>
                     <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span className="font-mono break-all">{event.user_id || "—"}</span>
