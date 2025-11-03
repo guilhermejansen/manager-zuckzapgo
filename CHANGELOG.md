@@ -5,6 +5,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.2.2...v1.3.0) (2025-11-03)
+
+### ✨ Novas Funcionalidades
+
+* **monitoramento:** adicionar interpretação inteligente de status de eventos ([16b6d33](https://github.com/guilhermejansen/manager-zuckzapgo/commit/16b6d33871cfa1cbb143848d6e16c90272542f95))
+
+### 🐛 Correções de Bugs
+
+* configure turbopack root ([82436db](https://github.com/guilhermejansen/manager-zuckzapgo/commit/82436dbd04480b0cf9abae82ea09f3097a2dd054))
+
 ## [1.2.2](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.2.1...v1.2.2) (2025-11-03)
 
 ### 🐛 Correções de Bugs
