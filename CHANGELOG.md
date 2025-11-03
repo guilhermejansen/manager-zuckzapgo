@@ -1,3 +1,14 @@
+## [1.2.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.1.1...v1.2.0) (2025-11-03)
+
+### Features
+
+* padronizar calendários em histórico e dlq ([a2b5c48](https://github.com/guilhermejansen/manager-zuckzapgo/commit/a2b5c48a2701bc5970b2fe5b836dd7bfae1bcc3e))
+* padronizar transportes no filtro da dlq ([e467d6c](https://github.com/guilhermejansen/manager-zuckzapgo/commit/e467d6c46683fe7f930cd5559f05ad0f48e1b8e4))
+
+### Bug Fixes
+
+* corrigir acionamento automático do workflow Docker após releases ([c7609a9](https://github.com/guilhermejansen/manager-zuckzapgo/commit/c7609a9f4fe57f71f01873dbaafdc682b8f981c6))
+
 # Changelog
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
