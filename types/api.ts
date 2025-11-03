@@ -958,12 +958,13 @@ export interface MonitoringEventFilter {
   event_type?: string
   status?: MonitoringEventStatus | ""
   since_id?: number
+  before_id?: number
   since_time?: string
   limit?: number
   only_failed?: boolean
 }
 
-export interface MonitoringHistoryParams extends MonitoringEventFilter {}
+export type MonitoringHistoryParams = Omit<MonitoringEventFilter, "since_id">
 
 export interface MonitoringHistoryResponse {
   events: MonitoringEvent[]

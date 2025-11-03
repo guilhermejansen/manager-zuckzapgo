@@ -120,13 +120,13 @@ export function HistorySection({
     const { name, value } = event.target
     const nextFilters: MonitoringHistoryParams = { ...filters }
 
-    if (name !== "since_id") {
-      nextFilters.since_id = undefined
+    if (name !== "before_id") {
+      nextFilters.before_id = undefined
     }
 
     if (!value) {
       delete (nextFilters as Record<string, unknown>)[name]
-    } else if (name === "since_id" || name === "limit") {
+    } else if (name === "before_id" || name === "limit") {
       const parsed = Number(value)
       if (!Number.isNaN(parsed)) {
         ;(nextFilters as Record<string, unknown>)[name] = parsed
@@ -150,7 +150,7 @@ export function HistorySection({
     } else {
       next.status = value
     }
-    next.since_id = undefined
+    next.before_id = undefined
     onFiltersChange(next)
   }
 
@@ -158,7 +158,7 @@ export function HistorySection({
     onFiltersChange({
       ...filters,
       only_failed: checked ? true : undefined,
-      since_id: undefined,
+      before_id: undefined,
     })
   }
 
@@ -243,7 +243,7 @@ export function HistorySection({
                   onFiltersChange({
                     ...filters,
                     event_type: nextValue === "All" ? undefined : nextValue,
-                    since_id: undefined,
+                    before_id: undefined,
                   })
                 }}
               >
@@ -290,15 +290,15 @@ export function HistorySection({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="since_id" className="text-xs font-medium text-muted-foreground">
-                Since ID
+              <Label htmlFor="before_id" className="text-xs font-medium text-muted-foreground">
+                Before ID
               </Label>
               <Input
-                id="since_id"
-                name="since_id"
+                id="before_id"
+                name="before_id"
                 type="number"
                 min={0}
-                value={filters.since_id ?? ""}
+                value={filters.before_id ?? ""}
                 onChange={handleInputChange}
                 className="w-[160px]"
               />
@@ -349,7 +349,7 @@ export function HistorySection({
             </div>
             {hasMore && (
               <Badge variant="outline" className="w-full whitespace-nowrap text-xs md:w-auto">
-                Paginação via since_id ({limitValue} por vez)
+                Paginação via cursor ({limitValue} por vez)
               </Badge>
             )}
           </div>

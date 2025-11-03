@@ -497,7 +497,7 @@ const handlePageChange = (page: number) => {
 }
 ```
 
-#### Cursor `since_id` (Monitoring)
+#### Cursor `before_id` (Monitoring)
 
 ```tsx
 const [historyPage, setHistoryPage] = useState(1)
@@ -505,10 +505,10 @@ const historyCursorStack = useRef<(number | null)[]>([])
 
 const handleHistoryNextPage = () => {
   if (!hasMore || !nextId) return
-  historyCursorStack.current.push(filters.since_id ?? null)
+  historyCursorStack.current.push(filters.before_id ?? null)
   onFiltersChange({
     ...filters,
-    since_id: nextId,
+    before_id: nextId,
   })
   setHistoryPage((prev) => prev + 1)
 }
@@ -518,7 +518,7 @@ const handleHistoryPreviousPage = () => {
   const previousCursor = historyCursorStack.current.pop()
   onFiltersChange({
     ...filters,
-    since_id: previousCursor ?? undefined,
+    before_id: previousCursor ?? undefined,
   })
   setHistoryPage((prev) => Math.max(1, prev - 1))
 }
@@ -532,14 +532,14 @@ const resetHistoryPagination = () => {
 ### Regras de Paginação
 - **Limit Padrão**: 50 itens por página
 - **Offset Inicial (Archive/DLQ)**: `offset = 0`
-- **Cursor Inicial (Monitoring)**: `since_id = undefined`
+- **Cursor Inicial (Monitoring)**: `before_id = undefined`
 - **Cálculo de Páginas**: `Math.ceil(totalCount / limit)` (usar `Math.max(1, ...)` quando necessário)
 - **Resumo**: Exibir `Página {current} de {total}` acompanhado de `({exibidos} eventos • {total} no total)` e usar o `stats.events.by_status` para o total quando os filtros padrão estão ativos
 - **Persistência**: Guardar `historyCursorStack` para permitir navegação `Anterior`
-- **Reset**: Limpar stack + `currentPage` ao alterar qualquer filtro (exceto `since_id` manual)
+- **Reset**: Limpar stack + `currentPage` ao alterar qualquer filtro (exceto `before_id` manual)
 - **Responsivo**: Info à esquerda, botões à direita (`flex-col` em mobile)
 - **Estados**: Desabilitar botões enquanto `loading` ou quando não houver página
-- **Indicador**: Mostrar badge “Paginação via since_id” quando a API retorna `has_more`
+- **Indicador**: Mostrar badge “Paginação via before_id” quando a API retorna `has_more`
 
 ---
 

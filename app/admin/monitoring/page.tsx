@@ -2,21 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import {
-  Activity,
-  AlertCircle,
-  Flame,
-  GaugeCircle,
-  RefreshCw,
-  Satellite,
-  ShieldCheck,
-} from "lucide-react"
+import { Activity, AlertCircle, RefreshCw, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { adminApi } from "@/lib/api"
 import type {
@@ -118,20 +108,20 @@ export default function MonitoringPage() {
 
   const handleHistoryNextPage = useCallback(() => {
     if (!historyMeta.has_more || !historyMeta.next_id) return
-    historyCursorStack.current.push(historyFilters.since_id ?? null)
+    historyCursorStack.current.push(historyFilters.before_id ?? null)
     setHistoryFilters((prev) => ({
       ...prev,
-      since_id: historyMeta.next_id,
+      before_id: historyMeta.next_id,
     }))
     setHistoryPage((prev) => prev + 1)
-  }, [historyFilters.since_id, historyMeta.has_more, historyMeta.next_id])
+  }, [historyFilters.before_id, historyMeta.has_more, historyMeta.next_id])
 
   const handleHistoryPreviousPage = useCallback(() => {
     if (historyCursorStack.current.length === 0) return
     const previousCursor = historyCursorStack.current.pop()
     setHistoryFilters((prev) => ({
       ...prev,
-      since_id: previousCursor ?? undefined,
+      before_id: previousCursor ?? undefined,
     }))
     setHistoryPage((prev) => Math.max(1, prev - 1))
   }, [])
@@ -292,7 +282,7 @@ export default function MonitoringPage() {
     return Object.values(stats.events.by_status).reduce((total, value) => total + Number(value ?? 0), 0)
   }, [stats?.events?.by_status])
 
-  const { since_id: _sinceId, limit: _limit, ...filterValues } = historyFilters
+  const { before_id: _beforeId, limit: _limit, ...filterValues } = historyFilters
   const hasActiveFilters = useMemo(
     () =>
       Boolean(
