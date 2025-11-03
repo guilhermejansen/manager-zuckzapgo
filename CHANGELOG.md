@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.4.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.3.0...v1.4.0) (2025-11-03)
+
+### ✨ Novas Funcionalidades
+
+* **docker:** adicionar detecção de modo worker e skip de migrations ([d67b275](https://github.com/guilhermejansen/manager-zuckzapgo/commit/d67b2759f2595fe654d87e30409160b7fae8d499))
+* **docker:** configurar ambiente de produção completo com Traefik e Docker Swarm ([6977b1a](https://github.com/guilhermejansen/manager-zuckzapgo/commit/6977b1a2253c873dd455eb0cbb84d187f6290039))
+* **error-handling:** adicionar Error Boundary de root layout para erros críticos ([1aac4c4](https://github.com/guilhermejansen/manager-zuckzapgo/commit/1aac4c42d3f82fc68aeba15fc70ee9464367f2d6))
+* **error-handling:** adicionar página de erro global com diagnóstico inteligente ([3fba310](https://github.com/guilhermejansen/manager-zuckzapgo/commit/3fba310252c1d3b185b1c9391824f3ab661fad6a)), closes [#PROD-ERROR-BLANK-SCREEN](https://github.com/guilhermejansen/manager-zuckzapgo/issues/PROD-ERROR-BLANK-SCREEN)
+* **workers:** adicionar configuração TypeScript para compilação de workers BullMQ ([eead17f](https://github.com/guilhermejansen/manager-zuckzapgo/commit/eead17f0cd219333a70facbe77536774ffdd3872))
+* **workers:** adicionar scripts de build e produção para BullMQ workers ([c1efde1](https://github.com/guilhermejansen/manager-zuckzapgo/commit/c1efde1b3f8743f5a6abb03272c98a201426e694))
+
+### 🐛 Correções de Bugs
+
+* **api:** corrigir construção de URL do ApiClient em produção standalone ([098e536](https://github.com/guilhermejansen/manager-zuckzapgo/commit/098e536d0e29dd7a7eae7e014815ce90f583e0d8)), closes [#PROD-DASHBOARD-500](https://github.com/guilhermejansen/manager-zuckzapgo/issues/PROD-DASHBOARD-500)
+* **docker:** corrigir comando de inicialização dos workers para usar JavaScript compilado ([b5590f9](https://github.com/guilhermejansen/manager-zuckzapgo/commit/b5590f9454faeb25cda59cac7e94a7595d8ce09f))
+* **docker:** corrigir publicação de tags versionadas no Docker Hub ([f804dc2](https://github.com/guilhermejansen/manager-zuckzapgo/commit/f804dc2ff7fd85dd70a2e075ed1bc5d8e4d88987))
+
 ## [1.3.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.2.2...v1.3.0) (2025-11-03)
 
 ### ✨ Novas Funcionalidades
