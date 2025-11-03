@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { endOfDay, startOfDay } from "date-fns"
-import { Calendar as CalendarIcon, ChevronDown, Filter, X } from "lucide-react"
+import { Calendar as CalendarIcon, Check, ChevronDown, ChevronsUpDown, Filter, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,14 @@ import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,16 +28,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { DLQListParams } from "@/types"
+import type { DLQEvent, DLQListParams } from "@/types"
 import { EVENT_LABELS, SUPPORTED_EVENTS } from "@/types/constants"
+import { formatTransportLabel } from "@/app/admin/shared/transport-utils"
 
 interface AdvancedFiltersProps {
   filters: DLQListParams
   onFilterChange: (filters: DLQListParams) => void
   className?: string
+  events: DLQEvent[]
+  availableTransports?: string[]
 }
-
-const TRANSPORTS = ["webhook", "rabbitmq", "s3", "sqs", "redis", "websocket"]
 
 // Helper function to validate date strings (prevents "Invalid time value" errors)
 const isValidDate = (dateStr: string | undefined): boolean => {
@@ -54,9 +63,16 @@ const formatTimeValue = (date: Date | null) => {
   return `${hours}:${minutes}`
 }
 
-export function AdvancedFilters({ filters, onFilterChange, className = "" }: AdvancedFiltersProps) {
+export function AdvancedFilters({
+  filters,
+  onFilterChange,
+  className = "",
+  events,
+  availableTransports = [],
+}: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [localFilters, setLocalFilters] = useState<DLQListParams>(filters)
+  const [transportOpen, setTransportOpen] = useState(false)
   const filtersRef = useRef(localFilters)
 
   useEffect(() => {
@@ -96,6 +112,27 @@ export function AdvancedFilters({ filters, onFilterChange, className = "" }: Adv
 
   const handleApplyFilter = (key: keyof DLQListParams, value: any) => {
     applyFilters({ [key]: value })
+  }
+
+  const transportValue = localFilters.transport ?? ""
+
+  const transportOptions = useMemo(() => {
+    const unique = new Set<string>()
+    availableTransports.forEach((transport) => transport && unique.add(transport))
+    events.forEach((event) => {
+      if (event.transport) unique.add(event.transport)
+    })
+    if (localFilters.transport) unique.add(localFilters.transport)
+
+    return Array.from(unique)
+      .sort((a, b) => formatTransportLabel(a).localeCompare(formatTransportLabel(b), "pt-BR"))
+      .map((value) => ({ value, label: formatTransportLabel(value) }))
+  }, [availableTransports, events, localFilters.transport])
+
+  const handleSelectTransport = (value: string) => {
+    const normalized = value === "all" ? undefined : value
+    setTransportOpen(false)
+    applyFilters({ transport: normalized })
   }
 
   const fromDate = isValidDate(localFilters.from) ? new Date(localFilters.from!) : null
@@ -202,24 +239,64 @@ export function AdvancedFilters({ filters, onFilterChange, className = "" }: Adv
           {/* Transport Filter */}
           <div className="space-y-2">
             <Label htmlFor="transport">Transport</Label>
-            <Select
-              value={localFilters.transport || "all"}
-              onValueChange={(value) =>
-                handleApplyFilter("transport", value === "all" ? undefined : value)
-              }
-            >
-              <SelectTrigger id="transport">
-                <SelectValue placeholder="Todos os transports" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os transports</SelectItem>
-                {TRANSPORTS.map((transport) => (
-                  <SelectItem key={transport} value={transport}>
-                    {transport}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={transportOpen} onOpenChange={setTransportOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  id="transport"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={transportOpen}
+                  className="w-full justify-between gap-2"
+                  title={
+                    transportValue
+                      ? formatTransportLabel(transportValue, "Todos os transportes")
+                      : "Todos os transportes"
+                  }
+                >
+                  <span className="flex-1 truncate text-left">
+                    {transportValue
+                      ? formatTransportLabel(transportValue, "Todos os transportes")
+                      : "Todos os transportes"}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar transport..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum transport encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem value="all" onSelect={handleSelectTransport}>
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            transportValue === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <span className="truncate">Todos os transportes</span>
+                      </CommandItem>
+                      {transportOptions.map((option) => (
+                        <CommandItem
+                          key={option.value}
+                          value={option.value}
+                          onSelect={handleSelectTransport}
+                          title={option.label}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              transportValue === option.value ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate">{option.label}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* User ID Filter */}

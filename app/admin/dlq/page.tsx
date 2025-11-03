@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 
-import { Activity, AlertCircle, Database, Loader2, RefreshCw, Settings, Trash2 } from "lucide-react"
+import { Activity, AlertCircle, Database, RefreshCw, Settings, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -148,6 +148,7 @@ export default function DLQPage() {
               onFilterChange={setFilters}
               onRefresh={handleRefresh}
               totalCount={stats?.total_count || 0}
+              availableTransports={Object.keys(stats?.by_transport ?? {})}
             />
           </TabsContent>
 

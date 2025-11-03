@@ -5,7 +5,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { adminApi } from "@/lib/api"
-import type { DLQDeleteParams, DLQEvent, DLQListParams, DLQReplayParams } from "@/types"
+import type { DLQEvent, DLQListParams } from "@/types"
 
 import { AdvancedFilters } from "./advanced-filters"
 import { BulkActionsBar } from "./bulk-actions-bar"
@@ -21,6 +21,7 @@ interface EventsTabProps {
   onFilterChange: (filters: DLQListParams) => void
   onRefresh: () => void
   totalCount: number
+  availableTransports: string[]
 }
 
 export function EventsTab({
@@ -29,6 +30,7 @@ export function EventsTab({
   onFilterChange,
   onRefresh,
   totalCount,
+  availableTransports,
 }: EventsTabProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectedEvent, setSelectedEvent] = useState<DLQEvent | null>(null)
@@ -138,7 +140,12 @@ export function EventsTab({
     <div className="space-y-4 w-full overflow-x-hidden">
       {/* Filtros Avançados e Bulk Actions */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <AdvancedFilters filters={filters} onFilterChange={onFilterChange} />
+        <AdvancedFilters
+          filters={filters}
+          onFilterChange={onFilterChange}
+          events={events}
+          availableTransports={availableTransports}
+        />
         <BulkActionsBar
           selectedCount={selectedIds.size}
           onReplayAll={handleReplaySelected}

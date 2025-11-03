@@ -50,6 +50,8 @@ import { endOfDay, startOfDay } from "date-fns"
 import type { ArchiveEvent, ArchiveListParams } from "@/types"
 import { EVENT_LABELS, SUPPORTED_EVENTS, type SupportedEvent } from "@/types/constants"
 
+import { formatTransportLabel } from "@/app/admin/shared/transport-utils"
+
 import { EventDetailsDialog } from "./event-details-dialog"
 import { formatArchiveEventDate, parseArchiveDate } from "./date-utils"
 
@@ -712,26 +714,4 @@ export function EventsTab({
       )}
     </Card>
   )
-}
-
-function formatTransportLabel(transport: string): string {
-  if (!transport) return "Todos os transportes"
-
-  let scopeLabel = ""
-  let base = transport
-
-  if (transport.startsWith("global-")) {
-    base = transport.replace(/^global-/, "")
-    scopeLabel = "Global"
-  } else if (transport.includes(":")) {
-    const [prefix, identifier] = transport.split(":")
-    base = prefix
-    const truncated = identifier.length > 6 ? `${identifier.slice(0, 6)}…` : identifier
-    scopeLabel = `Usuário ${truncated}`
-  }
-
-  const normalized = base.replace(/[-_]/g, " ")
-  const pretty = normalized.charAt(0).toUpperCase() + normalized.slice(1)
-
-  return scopeLabel ? `${pretty} (${scopeLabel})` : pretty
 }
