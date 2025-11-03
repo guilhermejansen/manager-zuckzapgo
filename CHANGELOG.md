@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.1.0...v1.1.1) (2025-11-03)
+
+### 🐛 Correções de Bugs
+
+* corrigir acionamento do workflow Docker após releases ([b00fb03](https://github.com/guilhermejansen/manager-zuckzapgo/commit/b00fb03d82d8fa0333709b48c8233337c2858a99))
+
 ## [1.1.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.0.0...v1.1.0) (2025-11-03)
 
 ### ✨ Novas Funcionalidades
