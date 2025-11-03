@@ -68,9 +68,28 @@ wait_for_service() {
     return 1
 }
 
+# Detect if running in worker mode
+is_worker_mode() {
+    for arg in "$@"; do
+        if echo "$arg" | grep -q "start-workers"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Main entrypoint logic
 main() {
     log_info "Starting Manager ZuckZapGo initialization..."
+
+    # Detect mode
+    SKIP_MIGRATIONS=false
+    if is_worker_mode "$@"; then
+        log_info "🔧 Worker mode detected"
+        SKIP_MIGRATIONS=true
+    else
+        log_info "🚀 Application mode detected"
+    fi
 
     # Check if DATABASE_URL is set
     if [ -z "$DATABASE_URL" ]; then
@@ -107,21 +126,25 @@ main() {
         log_warn "REDIS_URL not set, skipping Redis connectivity check"
     fi
 
-    # Run Prisma migrations
-    log_info "Running Prisma migrations..."
-    if npx prisma migrate deploy; then
-        log_info "Migrations completed successfully"
+    # Run Prisma migrations (skip for workers)
+    if [ "$SKIP_MIGRATIONS" = "true" ]; then
+        log_info "⏭️  Skipping Prisma migrations (worker mode)"
     else
-        log_error "Migration failed"
-        exit 1
-    fi
+        log_info "Running Prisma migrations..."
+        if npx prisma migrate deploy; then
+            log_info "Migrations completed successfully"
+        else
+            log_error "Migration failed"
+            exit 1
+        fi
 
-    # Generate Prisma Client (in case it's needed)
-    log_info "Ensuring Prisma Client is generated..."
-    if npx prisma generate; then
-        log_info "Prisma Client generated successfully"
-    else
-        log_warn "Prisma Client generation failed, but continuing..."
+        # Generate Prisma Client (in case it's needed)
+        log_info "Ensuring Prisma Client is generated..."
+        if npx prisma generate; then
+            log_info "Prisma Client generated successfully"
+        else
+            log_warn "Prisma Client generation failed, but continuing..."
+        fi
     fi
 
     # Log startup information
