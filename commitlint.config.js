@@ -58,10 +58,18 @@ module.exports = {
     // Body deve ter uma linha em branco antes
     "body-leading-blank": [2, "always"],
 
+    // Body pode ter linhas longas (necessário para changelogs com URLs)
+    "body-max-line-length": [0, "always", Infinity],
+
     // Footer deve ter uma linha em branco antes
     "footer-leading-blank": [2, "always"],
 
     // Scope é opcional mas deve ser lower-case
     "scope-case": [2, "always", "lower-case"],
   },
+
+  // Ignora commits de release automáticos do semantic-release
+  ignores: [
+    (commit) => commit.includes('[skip ci]'),
+  ],
 };

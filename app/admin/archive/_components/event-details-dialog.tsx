@@ -12,9 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import type { ArchiveEvent } from "@/types"
+
+import { formatArchiveDateString, formatArchiveEventDate } from "./date-utils"
 
 interface EventDetailsDialogProps {
   event: ArchiveEvent
@@ -46,7 +47,7 @@ export function EventDetailsDialog({ event, onClose }: EventDetailsDialogProps) 
   let parsedPayload: any = null
   try {
     parsedPayload = JSON.parse(event.payload)
-  } catch (error) {
+  } catch {
     // Payload não é JSON válido
   }
 
@@ -92,27 +93,11 @@ export function EventDetailsDialog({ event, onClose }: EventDetailsDialogProps) 
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground text-xs block">Created At:</span>
-                  <p className="text-xs">
-                    {new Date(event.created_at).toLocaleString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                  <p className="text-xs">{formatArchiveDateString(event.created_at)}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground text-xs block">Archived At:</span>
-                  <p className="text-xs">
-                    {new Date(event.archived_at).toLocaleString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                  <p className="text-xs">{formatArchiveEventDate(event)}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground text-xs block">Replay Count:</span>
@@ -121,15 +106,7 @@ export function EventDetailsDialog({ event, onClose }: EventDetailsDialogProps) 
                 {event.last_replay_at && (
                   <div className="space-y-1">
                     <span className="text-muted-foreground text-xs block">Last Replay:</span>
-                    <p className="text-xs">
-                      {new Date(event.last_replay_at).toLocaleString("pt-BR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                    <p className="text-xs">{formatArchiveDateString(event.last_replay_at)}</p>
                   </div>
                 )}
               </div>

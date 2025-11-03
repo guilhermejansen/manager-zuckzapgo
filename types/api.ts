@@ -835,9 +835,10 @@ export interface ArchiveEvent {
   attempts: number
   last_error: string | null
   created_at: string
-  archived_at: string
+  archived_at?: string | null
+  delivered_at?: string | null
   replay_count: number
-  last_replay_at: string | null
+  last_replay_at?: string | null
 }
 
 /**

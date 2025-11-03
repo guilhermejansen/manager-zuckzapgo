@@ -40,6 +40,7 @@ import type { ArchiveEvent, ArchiveListParams } from "@/types"
 import { EVENT_LABELS, SUPPORTED_EVENTS, type SupportedEvent } from "@/types/constants"
 
 import { EventDetailsDialog } from "./event-details-dialog"
+import { formatArchiveEventDate } from "./date-utils"
 
 interface EventsTabProps {
   events: ArchiveEvent[]
@@ -402,13 +403,7 @@ export function EventsTab({
                           <Badge variant="outline">{event.attempts}</Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(event.archived_at).toLocaleString("pt-BR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatArchiveEventDate(event)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -490,15 +485,7 @@ export function EventsTab({
                       )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Arquivado em:</span>
-                        <span className="text-xs">
-                          {new Date(event.archived_at).toLocaleString("pt-BR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                        <span className="text-xs">{formatArchiveEventDate(event)}</span>
                       </div>
                     </div>
 
