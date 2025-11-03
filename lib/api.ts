@@ -83,10 +83,12 @@ class ApiClient {
 
     // Server-side needs full URL, client-side uses relative path
     if (isServer) {
-      // In development, use localhost. In production, use the deployment URL
-      const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
-      const host = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_SITE_URL || "localhost:3000"
-      this.baseUrl = `${protocol}://${host}/api/proxy`
+      // Server-side: Always use HTTP for internal calls (localhost/container)
+      // The Next.js standalone server runs on HTTP internally, even in production
+      const protocol = "http"
+      const host = process.env.HOSTNAME || "localhost"
+      const port = process.env.PORT || "3000"
+      this.baseUrl = `${protocol}://${host}:${port}/api/proxy`
     } else {
       // Client-side: relative path works fine
       this.baseUrl = "/api/proxy"
