@@ -1,15 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
-import { format } from "date-fns"
-import { ChevronDown, Filter, X } from "lucide-react"
+import { endOfDay, startOfDay } from "date-fns"
+import { Calendar as CalendarIcon, ChevronDown, Filter, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import type { DLQListParams } from "@/types"
 import { EVENT_LABELS, SUPPORTED_EVENTS } from "@/types/constants"
 
@@ -36,19 +39,39 @@ const isValidDate = (dateStr: string | undefined): boolean => {
   return !isNaN(date.getTime())
 }
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+})
+
+const formatTimeValue = (date: Date | null) => {
+  if (!date) return ""
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  return `${hours}:${minutes}`
+}
+
 export function AdvancedFilters({ filters, onFilterChange, className = "" }: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [localFilters, setLocalFilters] = useState<DLQListParams>(filters)
+  const filtersRef = useRef(localFilters)
+
+  useEffect(() => {
+    filtersRef.current = localFilters
+  }, [localFilters])
 
   // Debounce user_id input
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (localFilters.user_id !== filters.user_id) {
-        onFilterChange(localFilters)
+      if (filtersRef.current.user_id !== filters.user_id) {
+        onFilterChange(filtersRef.current)
       }
     }, 500)
     return () => clearTimeout(timer)
-  }, [localFilters.user_id])
+  }, [filters.user_id, onFilterChange, localFilters.user_id])
 
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => value !== undefined && value !== "" && key !== "limit" && key !== "offset"
@@ -63,12 +86,89 @@ export function AdvancedFilters({ filters, onFilterChange, className = "" }: Adv
     onFilterChange(clearedFilters)
   }
 
-  const handleApplyFilter = (key: keyof DLQListParams, value: any) => {
-    const newFilters = { ...localFilters, [key]: value, offset: 0 }
+  const applyFilters = (updates: Partial<DLQListParams>, emit = true) => {
+    const newFilters = { ...localFilters, ...updates, offset: 0 }
     setLocalFilters(newFilters)
-    if (key !== "user_id") {
+    if (emit) {
       onFilterChange(newFilters)
     }
+  }
+
+  const handleApplyFilter = (key: keyof DLQListParams, value: any) => {
+    applyFilters({ [key]: value })
+  }
+
+  const fromDate = isValidDate(localFilters.from) ? new Date(localFilters.from!) : null
+  const toDate = isValidDate(localFilters.to) ? new Date(localFilters.to!) : null
+
+  const handleFromDateChange = (date?: Date) => {
+    if (!date) {
+      applyFilters({ from: undefined })
+      return
+    }
+
+    const reference = fromDate ?? startOfDay(date)
+    const next = new Date(date)
+    next.setHours(reference.getHours(), reference.getMinutes(), 0, 0)
+
+    const updates: Partial<DLQListParams> = { from: next.toISOString() }
+
+    if (toDate && next.getTime() > toDate.getTime()) {
+      const end = endOfDay(next)
+      updates.to = end.toISOString()
+    }
+
+    applyFilters(updates)
+  }
+
+  const handleFromTimeChange = (timeValue: string) => {
+    if (!fromDate) return
+
+    if (!timeValue) {
+      const reset = startOfDay(fromDate)
+      applyFilters({ from: reset.toISOString() })
+      return
+    }
+
+    const [hours, minutes] = timeValue.split(":").map((part) => Number(part))
+    const next = new Date(fromDate)
+    next.setHours(hours || 0, minutes || 0, 0, 0)
+    applyFilters({ from: next.toISOString() })
+  }
+
+  const handleToDateChange = (date?: Date) => {
+    if (!date) {
+      applyFilters({ to: undefined })
+      return
+    }
+
+    const reference = toDate ?? endOfDay(date)
+    const next = new Date(date)
+    next.setHours(reference.getHours(), reference.getMinutes(), 0, 0)
+    const updates: Partial<DLQListParams> = { to: next.toISOString() }
+
+    const currentFrom = fromDate
+    if (currentFrom && next.getTime() < currentFrom.getTime()) {
+      const start = startOfDay(date)
+      updates.from = start.toISOString()
+    }
+
+    applyFilters(updates)
+  }
+
+  const handleToTimeChange = (timeValue: string) => {
+    if (!toDate) return
+
+    if (!timeValue) {
+      const reset = endOfDay(toDate)
+      applyFilters({ to: reset.toISOString() })
+      return
+    }
+
+    const [hours, minutes] = timeValue.split(":").map((part) => Number(part))
+    const next = new Date(toDate)
+    next.setHours(hours || 0, minutes || 0, 0, 0)
+    applyFilters({ to: next.toISOString() })
   }
 
   return (
@@ -165,37 +265,98 @@ export function AdvancedFilters({ filters, onFilterChange, className = "" }: Adv
           {/* From Date Filter */}
           <div className="space-y-2">
             <Label htmlFor="from">Data Inicial</Label>
-            <Input
-              id="from"
-              type="datetime-local"
-              value={
-                localFilters.from && isValidDate(localFilters.from)
-                  ? format(new Date(localFilters.from), "yyyy-MM-dd'T'HH:mm")
-                  : ""
-              }
-              onChange={(e) => {
-                const value = e.target.value ? new Date(e.target.value).toISOString() : undefined
-                handleApplyFilter("from", value)
-              }}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="from"
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    fromDate ? "w-full" : "w-full text-muted-foreground"
+                  )}
+                  title={fromDate ? DATE_TIME_FORMATTER.format(fromDate) : "Selecionar data inicial"}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {fromDate ? DATE_TIME_FORMATTER.format(fromDate) : "Data inicial"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="space-y-3 p-3">
+                  <Calendar
+                    mode="single"
+                    selected={fromDate ?? undefined}
+                    onSelect={(date) => handleFromDateChange(date ?? undefined)}
+                    initialFocus
+                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={formatTimeValue(fromDate)}
+                      onChange={(event) => handleFromTimeChange(event.target.value)}
+                      disabled={!fromDate}
+                    />
+                    {fromDate && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => applyFilters({ from: undefined })}
+                      >
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* To Date Filter */}
           <div className="space-y-2">
             <Label htmlFor="to">Data Final</Label>
-            <Input
-              id="to"
-              type="datetime-local"
-              value={
-                localFilters.to && isValidDate(localFilters.to)
-                  ? format(new Date(localFilters.to), "yyyy-MM-dd'T'HH:mm")
-                  : ""
-              }
-              onChange={(e) => {
-                const value = e.target.value ? new Date(e.target.value).toISOString() : undefined
-                handleApplyFilter("to", value)
-              }}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="to"
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    toDate ? "w-full" : "w-full text-muted-foreground"
+                  )}
+                  title={toDate ? DATE_TIME_FORMATTER.format(toDate) : "Selecionar data final"}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {toDate ? DATE_TIME_FORMATTER.format(toDate) : "Data final"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="space-y-3 p-3">
+                  <Calendar
+                    mode="single"
+                    selected={toDate ?? undefined}
+                    onSelect={(date) => handleToDateChange(date ?? undefined)}
+                    initialFocus
+                    disabled={(date) => Boolean(fromDate && date < fromDate)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={formatTimeValue(toDate)}
+                      onChange={(event) => handleToTimeChange(event.target.value)}
+                      disabled={!toDate}
+                    />
+                    {toDate && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => applyFilters({ to: undefined })}
+                      >
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </CollapsibleContent>

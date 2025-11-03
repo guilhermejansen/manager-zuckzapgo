@@ -2,15 +2,17 @@
 
 import { ChangeEvent } from "react"
 
-import { formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow, startOfDay } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Database, Filter, RefreshCw, RotateCcw } from "lucide-react"
+import { Database, Filter, RefreshCw, RotateCcw, Calendar as CalendarIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -79,19 +81,26 @@ const statusStyles: Record<string, { badge: string; label: string }> = {
   },
 }
 
-function toInputDate(value?: string) {
-  if (!value) return ""
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+})
+
+function parseDate(value?: string) {
+  if (!value) return null
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ""
-  const pad = (num: number) => String(num).padStart(2, "0")
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  if (Number.isNaN(date.getTime())) return null
+  return date
 }
 
-function fromInputDate(value: string) {
-  if (!value) return undefined
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return undefined
-  return date.toISOString()
+function formatTimeValue(date: Date | null) {
+  if (!date) return ""
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  return `${hours}:${minutes}`
 }
 
 function formatStatusLabel(status?: string) {
@@ -160,6 +169,41 @@ export function HistorySection({
       only_failed: checked ? true : undefined,
       before_id: undefined,
     })
+  }
+
+  const sinceDate = parseDate(filters.since_time)
+
+  const handleSinceDateChange = (date?: Date) => {
+    if (!date) {
+      onFiltersChange({ ...filters, since_time: undefined, before_id: undefined })
+      return
+    }
+
+    const current = sinceDate ?? startOfDay(date)
+    const next = new Date(date)
+    next.setHours(current.getHours(), current.getMinutes(), 0, 0)
+
+    onFiltersChange({
+      ...filters,
+      since_time: next.toISOString(),
+      before_id: undefined,
+    })
+  }
+
+  const handleSinceTimeChange = (timeValue: string) => {
+    if (!timeValue) {
+      if (sinceDate) {
+        const reset = startOfDay(sinceDate)
+        onFiltersChange({ ...filters, since_time: reset.toISOString(), before_id: undefined })
+      }
+      return
+    }
+
+    const [hours, minutes] = timeValue.split(":").map((part) => Number(part))
+    const base = sinceDate ? new Date(sinceDate) : startOfDay(new Date())
+    base.setHours(hours || 0, minutes || 0, 0, 0)
+
+    onFiltersChange({ ...filters, since_time: base.toISOString(), before_id: undefined })
   }
 
   const selectedEventType: SupportedEvent =
@@ -307,14 +351,55 @@ export function HistorySection({
               <Label htmlFor="since_time" className="text-xs font-medium text-muted-foreground">
                 Since time
               </Label>
-              <Input
-                id="since_time"
-                name="since_time"
-                type="datetime-local"
-                value={toInputDate(filters.since_time)}
-                onChange={handleInputChange}
-                className="w-[220px]"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="since_time"
+                    variant="outline"
+                    className={cn(
+                      "w-[220px] justify-start text-left font-normal",
+                      !sinceDate && "text-muted-foreground"
+                    )}
+                    title={sinceDate ? DATE_TIME_FORMATTER.format(sinceDate) : "Selecionar data"}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {sinceDate ? DATE_TIME_FORMATTER.format(sinceDate) : "Data e horário"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="space-y-3 p-3">
+                    <Calendar
+                      mode="single"
+                      selected={sinceDate ?? undefined}
+                      onSelect={(date) => handleSinceDateChange(date ?? undefined)}
+                      initialFocus
+                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={formatTimeValue(sinceDate)}
+                        onChange={(event) => handleSinceTimeChange(event.target.value)}
+                        disabled={!sinceDate}
+                      />
+                      {sinceDate && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            onFiltersChange({
+                              ...filters,
+                              since_time: undefined,
+                              before_id: undefined,
+                            })
+                          }
+                        >
+                          Limpar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex w-full items-center gap-3 rounded-lg border p-3 md:w-auto">
               <Switch
