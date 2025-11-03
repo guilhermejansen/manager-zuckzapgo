@@ -49,12 +49,13 @@ RUN npx prisma generate
 # Copy source code
 COPY . .
 
-# Build Next.js application
-# The standalone output will be in .next/standalone
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 RUN npm run build
+
+# Build worker bundle (postbuild runs automatically, but ensure artifacts exist)
+RUN test -d dist/workers
 
 # ------------------------------------------------------------------------------
 # Stage 3: Runner
@@ -99,6 +100,12 @@ COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 
 # Copy public folder
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
+
+# Copy compiled worker bundle
+COPY --from=builder --chown=nodejs:nodejs /app/dist/workers ./dist/workers
+
+# Remove TypeScript build info artifacts
+RUN rm -f dist/workers/tsconfig.workers.tsbuildinfo
 
 # Copy package.json for metadata
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
