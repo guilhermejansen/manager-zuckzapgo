@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.2.0...v1.2.1) (2025-11-03)
+
+### Bug Fixes
+
+* ajustar trigger do workflow Docker para apenas tags v* ([d948161](https://github.com/guilhermejansen/manager-zuckzapgo/commit/d948161c64401184b8ac78a1c654d89b87cfd7f3))
+
 ## [1.2.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.1.1...v1.2.0) (2025-11-03)
 
 ### Features
