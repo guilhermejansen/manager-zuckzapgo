@@ -15,18 +15,31 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Permitir acesso público
-  const publicPaths = ["/login", "/_next", "/api", "/favicon.ico"]
-  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
+  const publicPrefixes = [
+    "/login",
+    "/_next",
+    "/api",
+    "/favicon.ico",
+    "/manifest.json",
+    "/robots.txt",
+  ]
+  const marketingPaths = ["/", "/landing"]
 
+  const isPublicPath = publicPrefixes.some((path) => pathname.startsWith(path))
   if (isPublicPath) {
     return NextResponse.next()
   }
+
+  const isMarketingPath = marketingPaths.includes(pathname)
 
   // Verificar autenticação
   const role = getRole(request.cookies)
 
   // Não autenticado - redirecionar para login
   if (!role) {
+    if (isMarketingPath) {
+      return NextResponse.next()
+    }
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
@@ -44,13 +57,6 @@ export function proxy(request: NextRequest) {
   if (role === "user" && pathname.startsWith("/admin")) {
     const url = request.nextUrl.clone()
     url.pathname = "/user/dashboard"
-    return NextResponse.redirect(url)
-  }
-
-  // Redirecionar root para dashboard apropriado
-  if (pathname === "/") {
-    const url = request.nextUrl.clone()
-    url.pathname = getRedirectPath(role)
     return NextResponse.redirect(url)
   }
 

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Workflow Editor</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            background: #111;
+            color: #fff;
+        }
+        .status {
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+        .warning { background: #f59e0b; }
+        .info { background: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste do Workflow Editor V2</h1>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        let testCount = 0;
+        let passCount = 0;
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+            testCount++;
+            if(type === 'success') passCount++;
+        }
+
+        // Test 1: Check if server is running
+        fetch('http://localhost:3000/admin/campaigns/new')
+            .then(response => {
+                if(response.ok) {
+                    log('✅ Servidor Next.js está rodando', 'success');
+                } else {
+                    log('⚠️ Servidor respondeu com status: ' + response.status, 'warning');
+                }
+                return response.text();
+            })
+            .then(html => {
+                // Test 2: Check if WorkflowEditorV2 is in the page
+                if(html.includes('WorkflowEditorV2')) {
+                    log('✅ WorkflowEditorV2 encontrado no HTML', 'success');
+                } else {
+                    log('❌ WorkflowEditorV2 NÃO encontrado', 'error');
+                }
+
+                // Test 3: Check for error messages
+                if(html.includes('Error #185')) {
+                    log('❌ Error #185 detectado!', 'error');
+                } else {
+                    log('✅ Sem Error #185', 'success');
+                }
+
+                // Test 4: Check for custom nodes
+                const customNodes = [
+                    'trigger-start-node',
+                    'text-message-node-simple',
+                    'media-message-node-simple',
+                    'interactive-node-simple'
+                ];
+
+                customNodes.forEach(node => {
+                    if(html.includes(node)) {
+                        log(`✅ Custom node ${node} carregado`, 'success');
+                    } else {
+                        log(`⚠️ Custom node ${node} não detectado no HTML inicial`, 'warning');
+                    }
+                });
+
+                // Final summary
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.style.marginTop = '20px';
+                    div.style.padding = '20px';
+                    div.style.border = '2px solid #3b82f6';
+                    div.style.borderRadius = '8px';
+                    div.innerHTML = `
+                        <h2>📊 Resumo dos Testes</h2>
+                        <p>Total de testes: ${testCount}</p>
+                        <p>Testes passados: ${passCount}</p>
+                        <p>Taxa de sucesso: ${Math.round(passCount/testCount*100)}%</p>
+                        <br>
+                        <p><strong>Status da Fase 2:</strong> ${passCount === testCount ? '✅ COMPLETA!' : '🔄 Em progresso'}</p>
+                    `;
+                    results.appendChild(div);
+                }, 1000);
+            })
+            .catch(error => {
+                log('❌ Erro ao conectar com o servidor: ' + error.message, 'error');
+            });
+    </script>
+</body>
+</html>
