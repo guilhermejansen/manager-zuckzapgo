@@ -64,6 +64,12 @@ import { countMessageNodes } from "@/lib/workflow/runtime"
 // Manager ZuckZapGo - Campaign Server Actions
 // Server Actions para CRUD de campanhas
 
+// Manager ZuckZapGo - Campaign Server Actions
+// Server Actions para CRUD de campanhas
+
+// Manager ZuckZapGo - Campaign Server Actions
+// Server Actions para CRUD de campanhas
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -648,6 +654,65 @@ export async function removeCampaignInstanceAction(
     return {
       success: false,
       error: "Erro ao remover instância",
+    }
+  }
+}
+
+/**
+ * Buscar instâncias da campanha
+ */
+export async function getCampaignInstancesAction(campaignId: string): Promise<ActionResult> {
+  try {
+    const cookieStore = await cookies()
+    const role = getRole(cookieStore)
+    const userId = getToken(cookieStore)
+
+    if (!role || !userId) {
+      return {
+        success: false,
+        error: "Não autenticado",
+      }
+    }
+
+    // Verificar permissão
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+    })
+
+    if (!campaign) {
+      return {
+        success: false,
+        error: "Campanha não encontrada",
+      }
+    }
+
+    if (role !== "admin" && campaign.userId !== userId) {
+      return {
+        success: false,
+        error: "Sem permissão para visualizar esta campanha",
+      }
+    }
+
+    // Buscar instâncias
+    const instances = await prisma.campaignInstance.findMany({
+      where: { campaignId },
+      orderBy: { priority: "asc" },
+    })
+
+    return {
+      success: true,
+      data: instances,
+    }
+  } catch (error) {
+    logger.error("Failed to get campaign instances", error instanceof Error ? error : undefined, {
+      component: "CampaignActions",
+      action: "getCampaignInstancesAction",
+      metadata: { campaignId },
+    })
+
+    return {
+      success: false,
+      error: "Erro ao buscar instâncias",
     }
   }
 }
