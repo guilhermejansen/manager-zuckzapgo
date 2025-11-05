@@ -1,10 +1,9 @@
-import { redirect } from "next/navigation"
+import { LandingPage } from "@/components/landing/landing-page"
 
 /**
- * Página root - redireciona para login
- * O middleware cuidará do redirecionamento apropriado
- * baseado no status de autenticação
+ * Landing page pública
+ * Usuários autenticados continuam sendo redirecionados via proxy.ts
  */
 export default function HomePage() {
-  redirect("/login")
+  return <LandingPage />
 }

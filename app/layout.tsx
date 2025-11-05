@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 
 import "./globals.css"
+import "reactflow/dist/style.css"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,7 +34,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider defaultTheme="system" storageKey="zuckzapgo-theme">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+          storageKey="zuckzapgo-theme"
+        >
           {children}
           <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
