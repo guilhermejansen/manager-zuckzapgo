@@ -28,10 +28,10 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
 } from "reactflow"
-import "reactflow/dist/style.css"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { WorkflowProvider } from "@/contexts/campaign-workflow-context"
 import { logger } from "@/lib/logger"
 import type { WorkflowFormData } from "@/lib/validations"
 
@@ -50,11 +50,7 @@ import TextMessageNode from "./nodes/text-message-node"
 import type { TextMessageNodeData } from "./nodes/text-message-node"
 import { NODE_DEFINITIONS, type WorkflowNodeType } from "./workflow-definitions"
 import { WorkflowSidebar } from "./workflow-sidebar"
-import type {
-  PlaceholderGroup,
-  WorkflowAvailableSource,
-  WorkflowNodeInput,
-} from "./workflow-types"
+import type { PlaceholderGroup, WorkflowAvailableSource, WorkflowNodeInput } from "./workflow-types"
 
 interface WorkflowEditorProps {
   initialNodes?: Node[]
@@ -79,6 +75,8 @@ function withNodeDefinition(node: Node): Node {
 
   return {
     ...node,
+    width: node.width ?? 280, // Dimensão para SSR (ReactFlow requer width/height para renderização no servidor)
+    height: node.height ?? 120, // Dimensão para SSR
     data: {
       ...baseData,
       ...(node.data ?? {}),
@@ -332,7 +330,9 @@ function mergeNodeData<T extends BaseNodeData>(
   if (!ctx.readOnly) {
     actions = {
       ...baseActions,
-      onExecute: actionConfig.execute ? () => ctx.handleExecuteNode(props.id) : baseActions?.onExecute,
+      onExecute: actionConfig.execute
+        ? () => ctx.handleExecuteNode(props.id)
+        : baseActions?.onExecute,
       onDuplicate: actionConfig.duplicate
         ? () => ctx.handleDuplicateNode(props.id)
         : baseActions?.onDuplicate,
@@ -362,7 +362,13 @@ function mergeNodeData<T extends BaseNodeData>(
 const TriggerStartNode = memo(function TriggerStartNodeRenderer(props: NodeProps<BaseNodeData>) {
   const ctx = useWorkflowNodeContext()
   const data = useMemo(
-    () => mergeNodeData(props, ctx, { execute: true, duplicate: true, delete: true, toggleActive: true }),
+    () =>
+      mergeNodeData(props, ctx, {
+        execute: true,
+        duplicate: true,
+        delete: true,
+        toggleActive: true,
+      }),
     [ctx, props]
   )
   return <StartNode {...props} data={data} />
@@ -375,16 +381,12 @@ const TextMessageNodeComponent = memo(function TextMessageNodeRenderer(
 
   const data = useMemo(
     () =>
-      mergeNodeData<TextMessageNodeData>(
-        props,
-        ctx,
-        { execute: true, duplicate: true, delete: true, toggleActive: true },
-        {
-          onConfigChange: ctx.readOnly
-            ? props.data?.onConfigChange
-            : (patch) => ctx.handleNodeConfigChange(props.id, patch as Record<string, unknown>),
-        }
-      ),
+      mergeNodeData<TextMessageNodeData>(props, ctx, {
+        execute: true,
+        duplicate: true,
+        delete: true,
+        toggleActive: true,
+      }),
     [ctx, props]
   )
 
@@ -398,16 +400,12 @@ const MediaMessageNodeComponent = memo(function MediaMessageNodeRenderer(
 
   const data = useMemo(
     () =>
-      mergeNodeData<MediaMessageNodeData>(
-        props,
-        ctx,
-        { execute: true, duplicate: true, delete: true, toggleActive: true },
-        {
-          onConfigChange: ctx.readOnly
-            ? props.data?.onConfigChange
-            : (patch) => ctx.handleNodeConfigChange(props.id, patch as Record<string, unknown>),
-        }
-      ),
+      mergeNodeData<MediaMessageNodeData>(props, ctx, {
+        execute: true,
+        duplicate: true,
+        delete: true,
+        toggleActive: true,
+      }),
     [ctx, props]
   )
 
@@ -421,16 +419,12 @@ const InteractiveMessageNodeComponent = memo(function InteractiveMessageNodeRend
 
   const data = useMemo(
     () =>
-      mergeNodeData<InteractiveNodeData>(
-        props,
-        ctx,
-        { execute: true, duplicate: true, delete: true, toggleActive: true },
-        {
-          onConfigChange: ctx.readOnly
-            ? props.data?.onConfigChange
-            : (patch) => ctx.handleNodeConfigChange(props.id, patch as Record<string, unknown>),
-        }
-      ),
+      mergeNodeData<InteractiveNodeData>(props, ctx, {
+        execute: true,
+        duplicate: true,
+        delete: true,
+        toggleActive: true,
+      }),
     [ctx, props]
   )
 
@@ -442,16 +436,7 @@ const DelayNodeComponent = memo(function DelayNodeRenderer(props: NodeProps<Dela
 
   const data = useMemo(
     () =>
-      mergeNodeData<DelayNodeData>(
-        props,
-        ctx,
-        { execute: true, duplicate: true, delete: true },
-        {
-          onConfigChange: ctx.readOnly
-            ? props.data?.onConfigChange
-            : (patch) => ctx.handleNodeConfigChange(props.id, patch as Record<string, unknown>),
-        }
-      ),
+      mergeNodeData<DelayNodeData>(props, ctx, { execute: true, duplicate: true, delete: true }),
     [ctx, props]
   )
 
@@ -465,16 +450,11 @@ const HttpRequestNodeComponent = memo(function HttpRequestNodeRenderer(
 
   const data = useMemo(
     () =>
-      mergeNodeData<HttpRequestNodeData>(
-        props,
-        ctx,
-        { execute: true, duplicate: true, delete: true },
-        {
-          onConfigChange: ctx.readOnly
-            ? props.data?.onConfigChange
-            : (patch) => ctx.handleNodeConfigChange(props.id, patch as Record<string, unknown>),
-        }
-      ),
+      mergeNodeData<HttpRequestNodeData>(props, ctx, {
+        execute: true,
+        duplicate: true,
+        delete: true,
+      }),
     [ctx, props]
   )
 
@@ -484,7 +464,10 @@ const HttpRequestNodeComponent = memo(function HttpRequestNodeRenderer(
 const EndNodeComponent = memo(function EndNodeRenderer(props: NodeProps<BaseNodeData>) {
   const ctx = useWorkflowNodeContext()
   const data = useMemo(
-    () => mergeNodeData(props, ctx, { duplicate: true, delete: true }),
+    () => ({
+      ...mergeNodeData(props, ctx, { duplicate: true, delete: true }),
+      config: {},
+    }),
     [ctx, props]
   )
   return <EndNode {...props} data={data} />
@@ -866,41 +849,48 @@ function WorkflowEditorInner({
 
   return (
     <div className="flex h-full gap-4">
-      {!readOnly && <WorkflowSidebar onDragStart={handleDragStart} />}
+      {!readOnly && <WorkflowSidebar isOpen={true} onClose={() => {}} />}
       <div className="flex h-full flex-1 flex-col rounded-3xl border border-white/[0.04] bg-[#090B11]">
         <div
           ref={reactFlowWrapper}
           className="relative flex-1 overflow-hidden rounded-3xl"
           style={{ minHeight: 600, width: "100%" }}
         >
-          <WorkflowNodeContext.Provider value={contextValue}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={readOnly ? undefined : onNodesChange}
-              onEdgesChange={readOnly ? undefined : onEdgesChange}
-              onConnect={readOnly ? undefined : onConnectHandle}
-              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-              onSelectionChange={handleSelectionChange}
-              onInit={(instance) => (reactFlowInstance.current = instance)}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-              nodeTypes={NODE_TYPES}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-              className="bg-[#0B0D13]"
-            >
-              <Background
-                color={resolvedTheme === "light" ? "#CBD5F5" : "#1F2430"}
-                gap={20}
-                size={1}
-              />
-              <Controls
-                className="rounded-full border border-white/10 bg-black/40 text-white"
-                showFitView
-              />
-            </ReactFlow>
-          </WorkflowNodeContext.Provider>
+          <WorkflowProvider
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={setNodes}
+            onEdgesChange={setEdges}
+          >
+            <WorkflowNodeContext.Provider value={contextValue}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={readOnly ? undefined : onNodesChange}
+                onEdgesChange={readOnly ? undefined : onEdgesChange}
+                onConnect={readOnly ? undefined : onConnectHandle}
+                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                onSelectionChange={handleSelectionChange}
+                onInit={(instance) => (reactFlowInstance.current = instance)}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                nodeTypes={NODE_TYPES}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                className="bg-[#0B0D13]"
+              >
+                <Background
+                  color={resolvedTheme === "light" ? "#CBD5F5" : "#1F2430"}
+                  gap={20}
+                  size={1}
+                />
+                <Controls
+                  className="rounded-full border border-white/10 bg-black/40 text-white"
+                  showFitView
+                />
+              </ReactFlow>
+            </WorkflowNodeContext.Provider>
+          </WorkflowProvider>
         </div>
         {!readOnly ? (
           <div className="flex items-center justify-between border-t border-white/5 px-6 py-4 text-xs text-white/70">
