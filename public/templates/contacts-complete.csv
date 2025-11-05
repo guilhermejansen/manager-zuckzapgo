@@ -1,0 +1,74 @@
+# Template de Importação Completo - Todos os Tipos de Contatos
+# Use este arquivo como modelo para importar diferentes tipos de contatos
+#
+# Tipos suportados e seus formatos de JID:
+#
+# 1. INDIVIDUAL (Contatos Individuais)
+#    Formato: numero@s.whatsapp.net
+#    Exemplo: 5511999999999@s.whatsapp.net
+#
+# 2. LID (Hidden User Server)
+#    Formato: numero@lid
+#    Exemplo: 1234567890@lid
+#
+# 3. GROUP (Grupos)
+#    Formato: grupoID@g.us
+#    Exemplo: 120363123456789012@g.us
+#
+# 4. NEWSLETTER (Canais)
+#    Formato: canalID@newsletter
+#    Exemplo: 1234567890@newsletter
+#
+# 5. BROADCAST (Listas de Transmissão)
+#    Formato: listaID@broadcast
+#    Exemplo: 1234567890@broadcast
+#
+# 6. STATUS (Status do WhatsApp)
+#    Formato: status@broadcast (fixo)
+#
+# 7. BOT (Bots do WhatsApp)
+#    Formato: botID@bot
+#    Exemplo: 1234567890@bot
+#
+# 8. HOSTED (Servidores Hospedados)
+#    Formato: serverID@hosted
+#    Exemplo: 1234567890@hosted
+#
+# 9. HOSTED_LID (Servidores LID Hospedados)
+#    Formato: serverID@hosted.lid
+#    Exemplo: 1234567890@hosted.lid
+#
+# 10. MESSENGER (Messenger Interop)
+#     Formato: messengerID@msgr
+#     Exemplo: 1234567890@msgr
+#
+# 11. INTEROP (Interoperabilidade Geral)
+#     Formato: interopID@interop
+#     Exemplo: 1234567890@interop
+#
+# Campos:
+# - JID: WhatsApp JID completo (obrigatório)
+# - Name: Nome do contato/grupo/canal (opcional)
+# - PushName: Nome de exibição (opcional, usado principalmente para INDIVIDUAL)
+# - CustomFields: Metadados em formato JSON (opcional)
+#
+# Importante:
+# - Não remova a linha de cabeçalho
+# - JID deve estar no formato correto para cada tipo
+# - CustomFields deve ser um JSON válido entre aspas
+#
+JID,Name,PushName,CustomFields
+5511999999999@s.whatsapp.net,João Silva,João,"{""type"":""individual"",""department"":""Sales""}"
+5511988888888@s.whatsapp.net,Maria Santos,Maria,"{""type"":""individual"",""department"":""Support""}"
+1234567890@lid,Usuario LID,,"{""type"":""lid"",""note"":""Hidden server""}"
+120363123456789012@g.us,Grupo de Vendas,,"{""type"":""group"",""team"":""Sales""}"
+120363987654321098@g.us,Suporte Técnico,,"{""type"":""group"",""team"":""Support""}"
+1234567890@newsletter,Canal de Novidades,,"{""type"":""channel"",""category"":""News""}"
+9876543210@newsletter,Promoções,,"{""type"":""channel"",""category"":""Marketing""}"
+1111111111@broadcast,Lista VIP,,"{""type"":""broadcast"",""segment"":""VIP""}"
+status@broadcast,Status WhatsApp,,"{""type"":""status"",""note"":""Fixed broadcast""}"
+2222222222@bot,Bot de Atendimento,,"{""type"":""bot"",""function"":""Support""}"
+3333333333@hosted,Servidor Empresarial,,"{""type"":""hosted"",""company"":""Example Inc""}"
+4444444444@hosted.lid,Servidor LID Host,,"{""type"":""hosted_lid"",""secure"":""true""}"
+5555555555@msgr,Messenger Contact,,"{""type"":""messenger"",""platform"":""Facebook""}"
+6666666666@interop,Interop General,,"{""type"":""interop"",""protocol"":""general""}"

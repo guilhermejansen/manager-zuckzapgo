@@ -1,0 +1,27 @@
+# Template de Importação - Canais/Newsletters do WhatsApp
+# Use este arquivo como modelo para importar canais e newsletters
+#
+# Formato do JID: canalID@newsletter
+# Exemplo: 1234567890@newsletter
+#
+# Como obter o ID do canal:
+# 1. Abra o canal no WhatsApp
+# 2. Verifique as informações do canal
+# 3. O ID geralmente é um número ou código alfanumérico
+#
+# Campos:
+# - JID: WhatsApp JID do canal (obrigatório)
+# - Name: Nome do canal (opcional)
+# - CustomFields: Metadados em formato JSON (opcional)
+#
+# Importante:
+# - Não remova a linha de cabeçalho
+# - JID deve estar no formato: idDoCanal@newsletter
+# - CustomFields deve ser um JSON válido entre aspas
+#
+JID,Name,CustomFields
+1234567890@newsletter,Canal de Novidades,"{""category"":""News"",""frequency"":""Daily""}"
+9876543210@newsletter,Promoções e Ofertas,"{""category"":""Marketing"",""frequency"":""Weekly""}"
+5555555555@newsletter,Tech Updates,"{""category"":""Technology"",""language"":""pt-BR""}"
+7777777777@newsletter,Comunicados Internos,"{""category"":""Internal"",""access"":""Private""}"
+8888888888@newsletter,Blog da Empresa,"{""category"":""Content"",""type"":""Blog""}"

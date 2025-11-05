@@ -1,0 +1,23 @@
+# Template de Importação - Contatos Individuais
+# Use este arquivo como modelo para importar contatos individuais do WhatsApp
+#
+# Formato do JID: numero@s.whatsapp.net
+# Exemplo: 5511999999999@s.whatsapp.net (Brasil), 1234567890@s.whatsapp.net (EUA)
+#
+# Campos:
+# - JID: WhatsApp JID completo (obrigatório)
+# - Name: Nome do contato (opcional)
+# - PushName: Nome de exibição no WhatsApp (opcional)
+# - CustomFields: Metadados em formato JSON (opcional)
+#
+# Importante:
+# - Não remova a linha de cabeçalho (primeira linha com nomes dos campos)
+# - JID deve estar no formato correto: numero@s.whatsapp.net
+# - CustomFields deve ser um JSON válido entre aspas
+#
+JID,Name,PushName,CustomFields
+5511999999999@s.whatsapp.net,João Silva,João,"{""department"":""Sales"",""region"":""SP""}"
+5511988888888@s.whatsapp.net,Maria Santos,Maria,"{""department"":""Support"",""region"":""RJ""}"
+5511977777777@s.whatsapp.net,Pedro Costa,Pedro,"{""department"":""Marketing"",""region"":""MG""}"
+5511966666666@s.whatsapp.net,Ana Oliveira,Ana,"{""department"":""Sales"",""region"":""SP""}"
+1234567890@s.whatsapp.net,John Doe,John,"{""country"":""USA"",""language"":""en""}"

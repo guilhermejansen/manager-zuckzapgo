@@ -1,0 +1,28 @@
+# Template de Importação - Grupos do WhatsApp
+# Use este arquivo como modelo para importar grupos do WhatsApp
+#
+# Formato do JID: grupoID@g.us
+# Exemplo: 120363123456789012@g.us
+#
+# Como obter o ID do grupo:
+# 1. Abra o grupo no WhatsApp Web
+# 2. O ID do grupo está na URL (números após "chat/")
+# 3. Cole o ID seguido de @g.us
+#
+# Campos:
+# - JID: WhatsApp JID do grupo (obrigatório)
+# - Name: Nome do grupo (opcional, será atualizado automaticamente)
+# - CustomFields: Metadados em formato JSON (opcional)
+#
+# Importante:
+# - Não remova a linha de cabeçalho
+# - JID deve estar no formato: numeroDoGrupo@g.us
+# - O ID do grupo geralmente tem 18-20 dígitos
+# - CustomFields deve ser um JSON válido entre aspas
+#
+JID,Name,CustomFields
+120363123456789012@g.us,Equipe de Vendas,"{""team"":""Sales"",""manager"":""João Silva""}"
+120363987654321098@g.us,Suporte Técnico,"{""team"":""Support"",""shift"":""24/7""}"
+120363555555555555@g.us,Marketing Digital,"{""team"":""Marketing"",""focus"":""Digital""}"
+120363444444444444@g.us,Desenvolvedores,"{""team"":""Tech"",""stack"":""Full Stack""}"
+120363333333333333@g.us,Gerência,"{""level"":""Management"",""department"":""All""}"
