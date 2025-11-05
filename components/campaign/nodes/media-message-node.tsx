@@ -3,6 +3,7 @@
 import { memo, useCallback, useRef } from "react"
 
 import type { NodeProps } from "reactflow"
+import { useWorkflow } from "@/contexts/campaign-workflow-context"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +16,6 @@ import { BaseNode, type BaseNodeData } from "./base-node"
 
 export interface MediaMessageNodeData extends Omit<BaseNodeData, "content"> {
   config: MediaMessageNodeConfig
-  onConfigChange?: (config: Partial<MediaMessageNodeConfig>) => void
 }
 
 function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
@@ -23,6 +23,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
   const { config } = data
   const captionRef = useRef<HTMLTextAreaElement>(null)
   const urlRef = useRef<HTMLInputElement>(null)
+  const { updateNode } = useWorkflow()
 
   const insertIntoField = useCallback(
     (
@@ -34,9 +35,12 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
       if (data.readOnly) return
 
       if (!element) {
-        data.onConfigChange?.({
-          [key]: `${current ?? ""}${value}`,
-        } as Partial<MediaMessageNodeConfig>)
+        updateNode(id, {
+          config: {
+            ...config,
+            [key]: `${current ?? ""}${value}`,
+          }
+        })
         return
       }
 
@@ -44,7 +48,12 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
       const selectionEnd = element.selectionEnd ?? current.length
       const nextValue = current.slice(0, selectionStart) + value + current.slice(selectionEnd)
 
-      data.onConfigChange?.({ [key]: nextValue } as Partial<MediaMessageNodeConfig>)
+      updateNode(id, {
+        config: {
+          ...config,
+          [key]: nextValue,
+        }
+      })
 
       requestAnimationFrame(() => {
         const cursor = selectionStart + value.length
@@ -52,7 +61,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
         element.setSelectionRange(cursor, cursor)
       })
     },
-    [data]
+    [id, config, updateNode, data.readOnly]
   )
 
   const handleInsertCaptionPlaceholder = useCallback(
@@ -88,8 +97,11 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                   id={`${id}-type`}
                   value={config.mediaType}
                   onChange={(event) =>
-                    data.onConfigChange?.({
-                      mediaType: event.target.value as MediaMessageNodeConfig["mediaType"],
+                    updateNode(id, {
+                      config: {
+                        ...config,
+                        mediaType: event.target.value as MediaMessageNodeConfig["mediaType"],
+                      }
                     })
                   }
                   className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
@@ -112,7 +124,9 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                   step={100}
                   value={config.delayMs}
                   onChange={(event) =>
-                    data.onConfigChange?.({ delayMs: Number(event.target.value) || 0 })
+                    updateNode(id, {
+                      config: { ...config, delayMs: Number(event.target.value) || 0 }
+                    })
                   }
                   className="bg-white/5 text-white"
                   disabled={data.readOnly}
@@ -136,7 +150,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                 ref={urlRef}
                 id={`${id}-url`}
                 value={config.mediaUrl}
-                onChange={(event) => data.onConfigChange?.({ mediaUrl: event.target.value })}
+                onChange={(event) => updateNode(id, { config: { ...config, mediaUrl: event.target.value } })}
                 placeholder="https://"
                 className="bg-white/5 text-white"
                 disabled={data.readOnly}
@@ -159,7 +173,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                 ref={captionRef}
                 id={`${id}-caption`}
                 value={config.caption ?? ""}
-                onChange={(event) => data.onConfigChange?.({ caption: event.target.value })}
+                onChange={(event) => updateNode(id, { config: { ...config, caption: event.target.value } })}
                 placeholder="Message caption, supports placeholders"
                 className="min-h-[80px] resize-none bg-white/5 text-white"
                 disabled={data.readOnly}
@@ -170,7 +184,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
               <InputMapper
                 value={data.inputs ?? []}
                 sources={data.availableSources ?? []}
-                onChange={(next) => data.onInputsChange?.(next)}
+                onChange={(next) => updateNode(id, { inputs: next })}
                 disabled={data.readOnly}
               />
             ) : null}

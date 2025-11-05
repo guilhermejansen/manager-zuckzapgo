@@ -103,61 +103,30 @@ function BaseNodeComponent({ data, id }: NodeProps<BaseNodeData>) {
               ) : null}
             </div>
           </div>
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            {data.actions?.onExecute ? (
+          <div className="flex items-center gap-1">
+            {/* Botões sempre visíveis estilo n8n */}
+            {data.actions?.onDuplicate && (
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-white"
-                onClick={data.actions.onExecute}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            ) : null}
-            {data.actions?.onDuplicate ? (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-white"
+                className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
                 onClick={data.actions.onDuplicate}
+                title="Duplicate node"
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3.5 w-3.5" />
               </Button>
-            ) : null}
-            {data.actions?.onDelete ? (
+            )}
+            {data.actions?.onDelete && (
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-white"
+                className="h-7 w-7 text-white/70 hover:text-red-400 hover:bg-red-500/10"
                 onClick={data.actions.onDelete}
+                title="Delete node"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
-            ) : null}
-            {menuItems.length ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {menuItems.map((item, index) =>
-                    item ? (
-                      <DropdownMenuItem
-                        key={`${id}-menu-${index}`}
-                        onClick={item.action}
-                        className={item.destructive ? "text-destructive" : undefined}
-                      >
-                        {item.label}
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuSeparator key={`sep-${index}`} />
-                    )
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+            )}
           </div>
         </div>
 

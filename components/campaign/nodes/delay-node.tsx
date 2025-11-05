@@ -3,6 +3,7 @@
 import { memo } from "react"
 
 import type { NodeProps } from "reactflow"
+import { useWorkflow } from "@/contexts/campaign-workflow-context"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,12 +13,12 @@ import { BaseNode, type BaseNodeData } from "./base-node"
 
 export interface DelayNodeData extends Omit<BaseNodeData, "content"> {
   config: DelayNodeConfig
-  onConfigChange?: (config: Partial<DelayNodeConfig>) => void
 }
 
 function DelayNode(props: NodeProps<DelayNodeData>) {
   const { data, id } = props
   const { config } = data
+  const { updateNode } = useWorkflow()
   return (
     <BaseNode
       {...props}
@@ -36,7 +37,7 @@ function DelayNode(props: NodeProps<DelayNodeData>) {
                 step={100}
                 value={config.durationMs}
                 onChange={(event) =>
-                  data.onConfigChange?.({ durationMs: Number(event.target.value) || 0 })
+                  updateNode(id, { config: { ...config, durationMs: Number(event.target.value) || 0 } })
                 }
                 className="bg-white/5 text-white"
                 disabled={data.readOnly}
@@ -53,7 +54,7 @@ function DelayNode(props: NodeProps<DelayNodeData>) {
                 step={100}
                 value={config.jitterMs ?? 0}
                 onChange={(event) =>
-                  data.onConfigChange?.({ jitterMs: Number(event.target.value) || 0 })
+                  updateNode(id, { config: { ...config, jitterMs: Number(event.target.value) || 0 } })
                 }
                 className="bg-white/5 text-white"
                 disabled={data.readOnly}

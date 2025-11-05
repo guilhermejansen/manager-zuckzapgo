@@ -2,12 +2,14 @@
 
 import { memo, useCallback, useRef } from "react"
 
+import { MessageSquare } from "lucide-react"
 import type { NodeProps } from "reactflow"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { useWorkflow } from "@/contexts/campaign-workflow-context"
 import type { TextMessageNodeConfig } from "@/lib/workflow/definitions"
 
 import { InputMapper } from "../input-mapper"
@@ -16,13 +18,13 @@ import { BaseNode, type BaseNodeData } from "./base-node"
 
 export interface TextMessageNodeData extends Omit<BaseNodeData, "content"> {
   config: TextMessageNodeConfig
-  onConfigChange?: (config: Partial<TextMessageNodeConfig>) => void
 }
 
 function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
   const { data, id } = props
   const { config } = data
   const messageRef = useRef<HTMLTextAreaElement>(null)
+  const { updateNode } = useWorkflow()
 
   const handleInsertPlaceholder = useCallback(
     (placeholder: string) => {
@@ -32,7 +34,7 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
       const currentValue = config.message ?? ""
 
       if (!element) {
-        data.onConfigChange?.({ message: `${currentValue}${placeholder}` })
+        updateNode(id, { config: { ...config, message: `${currentValue}${placeholder}` } })
         return
       }
 
@@ -41,7 +43,7 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
       const nextValue =
         currentValue.slice(0, selectionStart) + placeholder + currentValue.slice(selectionEnd)
 
-      data.onConfigChange?.({ message: nextValue })
+      updateNode(id, { config: { ...config, message: nextValue } })
 
       requestAnimationFrame(() => {
         const cursor = selectionStart + placeholder.length
@@ -49,7 +51,7 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
         element.setSelectionRange(cursor, cursor)
       })
     },
-    [config.message, data.onConfigChange, data.readOnly]
+    [config, updateNode, id, data.readOnly]
   )
 
   const shouldShowInputMapper =
@@ -60,6 +62,14 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
       {...props}
       data={{
         ...data,
+        label: "Mensagem de Texto",
+        description: "Enviar mensagem de texto",
+        icon: MessageSquare,
+        theme: {
+          border: "from-blue-400 to-blue-600",
+          background: "bg-gradient-to-br from-blue-900/40 to-blue-800/30",
+          accent: "bg-blue-500/30",
+        },
         content: (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -78,7 +88,9 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
                 ref={messageRef}
                 id={`${id}-message`}
                 value={config.message}
-                onChange={(event) => data.onConfigChange?.({ message: event.target.value })}
+                onChange={(event) =>
+                  updateNode(id, { config: { ...config, message: event.target.value } })
+                }
                 placeholder="Use placeholders como {{contact.name}}"
                 className="min-h-[120px] resize-none bg-white/5 text-white"
                 disabled={data.readOnly}
@@ -98,7 +110,9 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
                   step={100}
                   value={config.delayMs}
                   onChange={(event) =>
-                    data.onConfigChange?.({ delayMs: Number(event.target.value) || 0 })
+                    updateNode(id, {
+                      config: { ...config, delayMs: Number(event.target.value) || 0 },
+                    })
                   }
                   className="bg-white/5 text-white"
                   disabled={data.readOnly}
@@ -115,7 +129,9 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
                   step={100}
                   value={config.presenceSimulation}
                   onChange={(event) =>
-                    data.onConfigChange?.({ presenceSimulation: Number(event.target.value) || 0 })
+                    updateNode(id, {
+                      config: { ...config, presenceSimulation: Number(event.target.value) || 0 },
+                    })
                   }
                   className="bg-white/5 text-white"
                   disabled={data.readOnly}
@@ -130,7 +146,9 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
               </div>
               <Switch
                 checked={config.linkPreview}
-                onCheckedChange={(checked) => data.onConfigChange?.({ linkPreview: checked })}
+                onCheckedChange={(checked) =>
+                  updateNode(id, { config: { ...config, linkPreview: checked } })
+                }
                 disabled={data.readOnly}
               />
             </div>
@@ -139,7 +157,7 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
               <InputMapper
                 value={data.inputs ?? []}
                 sources={data.availableSources ?? []}
-                onChange={(next) => data.onInputsChange?.(next)}
+                onChange={(next) => updateNode(id, { inputs: next })}
                 disabled={data.readOnly}
               />
             ) : null}

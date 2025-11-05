@@ -3,6 +3,8 @@
 import { memo, useCallback, useRef } from "react"
 
 import type { NodeProps } from "reactflow"
+import { useWorkflow } from "@/contexts/campaign-workflow-context"
+import { generateDeterministicId } from "@/lib/id-generator"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,13 +19,13 @@ type InteractiveButton = InteractiveNodeConfig["buttons"][number]
 
 export interface InteractiveNodeData extends Omit<BaseNodeData, "content"> {
   config: InteractiveNodeConfig
-  onConfigChange?: (config: Partial<InteractiveNodeConfig>) => void
 }
 
 function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
   const { data, id } = props
   const { config } = data
   const promptRef = useRef<HTMLInputElement>(null)
+  const { updateNode } = useWorkflow()
 
   const appendPromptPlaceholder = useCallback(
     (placeholder: string) => {
@@ -31,14 +33,14 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
       const element = promptRef.current
       const current = config.text ?? ""
       if (!element) {
-        data.onConfigChange?.({ text: `${current}${placeholder}` })
+        updateNode(id, { config: { ...config, text: `${current}${placeholder}` } })
         return
       }
 
       const selectionStart = element.selectionStart ?? current.length
       const selectionEnd = element.selectionEnd ?? current.length
       const nextValue = current.slice(0, selectionStart) + placeholder + current.slice(selectionEnd)
-      data.onConfigChange?.({ text: nextValue })
+      updateNode(id, { config: { ...config, text: nextValue } })
 
       requestAnimationFrame(() => {
         const cursor = selectionStart + placeholder.length
@@ -46,31 +48,31 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
         element.setSelectionRange(cursor, cursor)
       })
     },
-    [config.text, data.onConfigChange, data.readOnly]
+    [id, config, updateNode, data.readOnly]
   )
 
   const addButton = () => {
     const nextButtons = [
       ...config.buttons,
       {
-        id: `${id}-btn-${Date.now()}`,
+        id: generateDeterministicId("btn"),
         label: `Option ${config.buttons.length + 1}`,
         value: `option_${config.buttons.length + 1}`,
       },
     ]
-    data.onConfigChange?.({ buttons: nextButtons })
+    updateNode(id, { config: { ...config, buttons: nextButtons } })
   }
 
   const updateButton = (buttonId: string, patch: Partial<InteractiveButton>) => {
     const nextButtons = config.buttons.map((button) =>
       button.id === buttonId ? { ...button, ...patch } : button
     )
-    data.onConfigChange?.({ buttons: nextButtons })
+    updateNode(id, { config: { ...config, buttons: nextButtons } })
   }
 
   const removeButton = (buttonId: string) => {
     const nextButtons = config.buttons.filter((button) => button.id !== buttonId)
-    data.onConfigChange?.({ buttons: nextButtons })
+    updateNode(id, { config: { ...config, buttons: nextButtons } })
   }
 
   const insertButtonPlaceholder = (
@@ -109,7 +111,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                 ref={promptRef}
                 id={`${id}-text`}
                 value={config.text}
-                onChange={(event) => data.onConfigChange?.({ text: event.target.value })}
+                onChange={(event) => updateNode(id, { config: { ...config, text: event.target.value } })}
                 className="bg-white/5 text-white"
                 disabled={data.readOnly}
               />
@@ -124,9 +126,11 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                   id={`${id}-type`}
                   value={config.interactiveType}
                   onChange={(event) =>
-                    data.onConfigChange?.({
-                      interactiveType: event.target
-                        .value as InteractiveNodeConfig["interactiveType"],
+                    updateNode(id, {
+                      config: {
+                        ...config,
+                        interactiveType: event.target.value as InteractiveNodeConfig["interactiveType"],
+                      }
                     })
                   }
                   className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
@@ -147,7 +151,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                   step={100}
                   value={config.delayMs}
                   onChange={(event) =>
-                    data.onConfigChange?.({ delayMs: Number(event.target.value) || 0 })
+                    updateNode(id, { config: { ...config, delayMs: Number(event.target.value) || 0 } })
                   }
                   className="bg-white/5 text-white"
                   disabled={data.readOnly}
@@ -164,7 +168,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                   id={`${id}-list-button`}
                   value={config.listButtonText ?? ""}
                   onChange={(event) =>
-                    data.onConfigChange?.({ listButtonText: event.target.value })
+                    updateNode(id, { config: { ...config, listButtonText: event.target.value } })
                   }
                   placeholder="View options"
                   className="bg-white/5 text-white"
@@ -241,7 +245,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
               <InputMapper
                 value={data.inputs ?? []}
                 sources={data.availableSources ?? []}
-                onChange={(next) => data.onInputsChange?.(next)}
+                onChange={(next) => updateNode(id, { inputs: next })}
                 disabled={data.readOnly}
               />
             ) : null}
