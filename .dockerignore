@@ -141,3 +141,4 @@ desktop.ini
 # Scripts (will be copied explicitly if needed)
 scripts/
 !scripts/wait-for-it.sh
+zuckzapgo-private/
