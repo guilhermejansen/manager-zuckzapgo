@@ -10,7 +10,6 @@ import { useEffect, useState } from "react"
 
 import { useRouter } from "next/navigation"
 
-import type { ColumnDef } from "@tanstack/react-table"
 import {
   Calendar,
   Eye,
@@ -33,7 +32,16 @@ import {
   pauseCampaignAction,
   startCampaignAction,
 } from "@/app/actions/campaigns"
-import { DataTable } from "@/components/custom"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,7 +54,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { logger } from "@/lib/logger"
 
 /**
@@ -172,7 +183,22 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [typeFilter, setTypeFilter] = useState<CampaignType | "ALL">("ALL")
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | "ALL">("ALL")
+  const [offset, setOffset] = useState(0)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean
+    title: string
+    description: string
+    onConfirm: () => void
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  })
   const router = useRouter()
+  const limit = 50
 
   async function loadCampaigns() {
     setLoading(true)
@@ -196,10 +222,21 @@ export default function CampaignsPage() {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Tem certeza que deseja deletar a campanha "${name}"?`)) {
-      return
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Deletar Campanha",
+      description: `Tem certeza que deseja deletar a campanha "${name}"? Esta ação não pode ser desfeita.`,
+      onConfirm: async () => {
+        try {
+          await executeDelete(id)
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
+  }
 
+  async function executeDelete(id: string) {
     try {
       const result = await deleteCampaignAction(id)
       if (result.success) {
@@ -219,10 +256,21 @@ export default function CampaignsPage() {
   }
 
   async function handleStart(id: string, name: string) {
-    if (!confirm(`Iniciar a campanha "${name}"?`)) {
-      return
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Iniciar Campanha",
+      description: `Deseja iniciar a campanha "${name}"?`,
+      onConfirm: async () => {
+        try {
+          await executeStart(id)
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
+  }
 
+  async function executeStart(id: string) {
     try {
       const result = await startCampaignAction(id)
       if (result.success) {
@@ -242,10 +290,21 @@ export default function CampaignsPage() {
   }
 
   async function handlePause(id: string, name: string) {
-    if (!confirm(`Pausar a campanha "${name}"?`)) {
-      return
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Pausar Campanha",
+      description: `Deseja pausar a campanha "${name}"?`,
+      onConfirm: async () => {
+        try {
+          await executePause(id)
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
+  }
 
+  async function executePause(id: string) {
     try {
       const result = await pauseCampaignAction(id)
       if (result.success) {
@@ -265,10 +324,21 @@ export default function CampaignsPage() {
   }
 
   async function handleCancel(id: string, name: string) {
-    if (!confirm(`Cancelar a campanha "${name}"? Esta ação não pode ser desfeita.`)) {
-      return
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Cancelar Campanha",
+      description: `Tem certeza que deseja cancelar a campanha "${name}"? Esta ação não pode ser desfeita.`,
+      onConfirm: async () => {
+        try {
+          await executeCancel(id)
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
+  }
 
+  async function executeCancel(id: string) {
     try {
       const result = await cancelCampaignAction(id)
       if (result.success) {
@@ -294,149 +364,37 @@ export default function CampaignsPage() {
 
   const filteredCampaigns = campaigns.filter((campaign) => {
     const term = searchTerm.toLowerCase()
-    return (
+    const matchesSearch =
       campaign.name.toLowerCase().includes(term) ||
-      (campaign.description && campaign.description.toLowerCase().includes(term)) ||
-      campaign.status.toLowerCase().includes(term) ||
-      campaign.type.toLowerCase().includes(term)
-    )
+      (campaign.description && campaign.description.toLowerCase().includes(term))
+    const matchesType = typeFilter === "ALL" || campaign.type === typeFilter
+    const matchesStatus = statusFilter === "ALL" || campaign.status === statusFilter
+    return matchesSearch && matchesType && matchesStatus
   })
 
-  const columns: ColumnDef<Campaign>[] = [
-    {
-      accessorKey: "name",
-      header: "Nome",
-      cell: ({ row }) => {
-        const campaign = row.original
-        return (
-          <div className="flex flex-col">
-            <span className="font-medium leading-tight">{campaign.name}</span>
-            {campaign.description && (
-              <span className="text-xs text-muted-foreground line-clamp-1">
-                {campaign.description}
-              </span>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: "type",
-      header: "Tipo",
-      cell: ({ row }) => getTypeBadge(row.original.type),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => getStatusBadge(row.original.status),
-    },
-    {
-      accessorKey: "scheduledFor",
-      header: "Agendamento",
-      cell: ({ row }) => {
-        const campaign = row.original
-        if (campaign.type === "SCHEDULED" && campaign.scheduledFor) {
-          return (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{new Date(campaign.scheduledFor).toLocaleString("pt-BR")}</span>
-            </div>
-          )
-        }
-        if (campaign.type === "RECURRING" && campaign.cronExpression) {
-          return (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-mono text-xs">{campaign.cronExpression}</span>
-            </div>
-          )
-        }
-        return <span className="text-xs text-muted-foreground">-</span>
-      },
-    },
-    {
-      id: "stats",
-      header: "Progresso",
-      cell: ({ row }) => {
-        const campaign = row.original
-        const total = campaign._count?.jobs || 0
-        return (
-          <div className="text-sm">
-            <span className="font-mono">{total} jobs</span>
-          </div>
-        )
-      },
-    },
-    {
-      id: "actions",
-      header: "Ações",
-      cell: ({ row }) => {
-        const campaign = row.original
-        const canStart = campaign.status === "DRAFT" || campaign.status === "PAUSED"
-        const canPause = campaign.status === "RUNNING"
-        const canCancel =
-          campaign.status === "RUNNING" ||
-          campaign.status === "PAUSED" ||
-          campaign.status === "PENDING"
+  const paginatedCampaigns = filteredCampaigns.slice(offset, offset + limit)
+  const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / limit))
+  const currentPage = Math.floor(offset / limit) + 1
+  const canGoPrevious = offset > 0
+  const canGoNext = offset + limit < filteredCampaigns.length
 
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Abrir menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Ações</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push(`/admin/campaigns/${campaign.id}`)}>
-                <Eye className="mr-2 h-4 w-4" />
-                Ver Dashboard
-              </DropdownMenuItem>
-              {campaign.status === "DRAFT" && (
-                <DropdownMenuItem
-                  onClick={() => router.push(`/admin/campaigns/${campaign.id}/edit`)}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              {canStart && (
-                <DropdownMenuItem onClick={() => handleStart(campaign.id, campaign.name)}>
-                  <Play className="mr-2 h-4 w-4" />
-                  Iniciar
-                </DropdownMenuItem>
-              )}
-              {canPause && (
-                <DropdownMenuItem onClick={() => handlePause(campaign.id, campaign.name)}>
-                  <Pause className="mr-2 h-4 w-4" />
-                  Pausar
-                </DropdownMenuItem>
-              )}
-              {canCancel && (
-                <DropdownMenuItem onClick={() => handleCancel(campaign.id, campaign.name)}>
-                  <X className="mr-2 h-4 w-4" />
-                  Cancelar
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              {campaign.status === "DRAFT" && (
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => handleDelete(campaign.id, campaign.name)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Deletar
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      },
-    },
-  ]
+  const handleNextPage = () => {
+    if (canGoNext) {
+      setOffset(offset + limit)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
+  const handlePreviousPage = () => {
+    if (canGoPrevious) {
+      setOffset(Math.max(0, offset - limit))
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
+  const handleFilterChange = () => {
+    setOffset(0) // Reset to first page when filters change
+  }
 
   const noCampaigns = !loading && campaigns.length === 0
   const noFilteredResults = !loading && campaigns.length > 0 && filteredCampaigns.length === 0
@@ -465,108 +423,392 @@ export default function CampaignsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, descrição, status ou tipo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search Filter */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="search-filter"
+              placeholder="Buscar por nome..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                handleFilterChange()
+              }}
+              className="h-9 w-[200px] pl-9 sm:w-[240px]"
+            />
+          </div>
+
+          {/* Type Filter */}
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => {
+              setTypeFilter(value as CampaignType | "ALL")
+              handleFilterChange()
+            }}
+          >
+            <SelectTrigger id="type-filter" className="h-9 w-[140px]">
+              <SelectValue placeholder="Todos os tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos os tipos</SelectItem>
+              <SelectItem value="SINGLE">Imediata</SelectItem>
+              <SelectItem value="SCHEDULED">Agendada</SelectItem>
+              <SelectItem value="RECURRING">Recorrente</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Status Filter */}
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value as CampaignStatus | "ALL")
+              handleFilterChange()
+            }}
+          >
+            <SelectTrigger id="status-filter" className="h-9 w-[140px]">
+              <SelectValue placeholder="Todos os status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos os status</SelectItem>
+              <SelectItem value="DRAFT">Rascunho</SelectItem>
+              <SelectItem value="PENDING">Pendente</SelectItem>
+              <SelectItem value="RUNNING">Em execução</SelectItem>
+              <SelectItem value="PAUSED">Pausada</SelectItem>
+              <SelectItem value="COMPLETED">Concluída</SelectItem>
+              <SelectItem value="CANCELLED">Cancelada</SelectItem>
+              <SelectItem value="FAILED">Falhou</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        {searchTerm && (
-          <Button variant="ghost" onClick={() => setSearchTerm("")} className="w-full sm:w-auto">
-            Limpar
+
+        {/* Clear Filters */}
+        {(searchTerm || typeFilter !== "ALL" || statusFilter !== "ALL") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearchTerm("")
+              setTypeFilter("ALL")
+              setStatusFilter("ALL")
+              handleFilterChange()
+            }}
+            className="h-9"
+          >
+            Limpar Filtros
           </Button>
         )}
       </div>
 
-      <div className="hidden md:block">
-        <DataTable
-          data={filteredCampaigns}
-          columns={columns}
-          loading={loading}
-          onRowClick={(row) => router.push(`/admin/campaigns/${row.id}`)}
-        />
-      </div>
-
-      <div className="space-y-4 md:hidden">
-        {loading
-          ? [1, 2, 3].map((index) => (
-              <Card key={`campaign-skeleton-${index}`}>
-                <CardContent className="space-y-4 py-6">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-40" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-6 w-20" />
-                    <Skeleton className="h-6 w-24" />
-                  </div>
-                  <Skeleton className="h-10 w-full" />
-                </CardContent>
-              </Card>
-            ))
-          : filteredCampaigns.length > 0
-            ? filteredCampaigns.map((campaign) => (
-                <Card key={campaign.id}>
-                  <CardHeader className="space-y-3">
-                    <div>
-                      <CardTitle className="text-lg font-semibold leading-tight">
-                        {campaign.name}
-                      </CardTitle>
-                      {campaign.description && (
-                        <CardDescription className="text-sm text-muted-foreground">
-                          {campaign.description}
-                        </CardDescription>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {getTypeBadge(campaign.type)}
-                      {getStatusBadge(campaign.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/admin/campaigns/${campaign.id}`)}
+      <Card className="py-0 overflow-hidden">
+        <CardContent className="p-0">
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="w-[140px]">Tipo</TableHead>
+                  <TableHead className="w-[140px]">Status</TableHead>
+                  <TableHead className="w-[200px]">Agendamento</TableHead>
+                  <TableHead className="w-[80px] text-center">Jobs</TableHead>
+                  <TableHead className="w-[80px] text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  [1, 2, 3, 4, 5].map((index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-48" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-12 mx-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-8 w-8 ml-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : paginatedCampaigns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                      Nenhuma campanha encontrada
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedCampaigns.map((campaign) => (
+                    <TableRow
+                      key={campaign.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/admin/campaigns/${campaign.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium leading-tight">{campaign.name}</span>
+                          {campaign.description && (
+                            <span className="text-xs text-muted-foreground line-clamp-1 max-w-[400px]">
+                              {campaign.description}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{getTypeBadge(campaign.type)}</TableCell>
+                      <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                      <TableCell>
+                        {campaign.type === "SCHEDULED" && campaign.scheduledFor ? (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm">
+                              {new Date(campaign.scheduledFor).toLocaleDateString("pt-BR")}
+                              {" "}
+                              {new Date(campaign.scheduledFor).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        ) : campaign.type === "RECURRING" && campaign.cronExpression ? (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="font-mono text-xs">{campaign.cronExpression}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {campaign._count?.jobs || 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver dashboard
-                      </Button>
-                      {campaign.status === "DRAFT" && (
-                        <>
-                          <Button
-                            variant="outline"
-                            onClick={() => router.push(`/admin/campaigns/${campaign.id}/edit`)}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar campanha
-                          </Button>
-                          <Button
-                            variant="default"
-                            onClick={() => handleStart(campaign.id, campaign.name)}
-                          >
-                            <Play className="mr-2 h-4 w-4" />
-                            Iniciar campanha
-                          </Button>
-                        </>
-                      )}
-                      {campaign.status === "RUNNING" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Abrir menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/campaigns/${campaign.id}`)}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver Dashboard
+                            </DropdownMenuItem>
+                            {campaign.status === "DRAFT" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(`/admin/campaigns/${campaign.id}/edit`)
+                                }
+                              >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {(campaign.status === "DRAFT" || campaign.status === "PAUSED") && (
+                              <DropdownMenuItem
+                                onClick={() => handleStart(campaign.id, campaign.name)}
+                              >
+                                <Play className="mr-2 h-4 w-4" />
+                                Iniciar
+                              </DropdownMenuItem>
+                            )}
+                            {campaign.status === "RUNNING" && (
+                              <DropdownMenuItem
+                                onClick={() => handlePause(campaign.id, campaign.name)}
+                              >
+                                <Pause className="mr-2 h-4 w-4" />
+                                Pausar
+                              </DropdownMenuItem>
+                            )}
+                            {(campaign.status === "RUNNING" ||
+                              campaign.status === "PAUSED" ||
+                              campaign.status === "PENDING") && (
+                              <DropdownMenuItem
+                                onClick={() => handleCancel(campaign.id, campaign.name)}
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Cancelar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {campaign.status === "DRAFT" && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDelete(campaign.id, campaign.name)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Deletar
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="space-y-4 md:hidden p-4">
+            {loading
+              ? [1, 2, 3].map((index) => (
+                  <div key={`skeleton-${index}`} className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  </div>
+                ))
+              : paginatedCampaigns.length === 0
+                ? null
+                : paginatedCampaigns.map((campaign) => (
+                    <div
+                      key={campaign.id}
+                      className="rounded-lg border bg-card p-4 space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium leading-tight">{campaign.name}</span>
+                          </div>
+                          {campaign.description && (
+                            <span className="text-xs text-muted-foreground">
+                              {campaign.description}
+                            </span>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {getTypeBadge(campaign.type)}
+                            {getStatusBadge(campaign.status)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        {(campaign.type === "SCHEDULED" && campaign.scheduledFor) ||
+                        (campaign.type === "RECURRING" && campaign.cronExpression) ? (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Agendamento:</span>
+                            {campaign.type === "SCHEDULED" && campaign.scheduledFor ? (
+                              <span className="text-xs">
+                                {new Date(campaign.scheduledFor).toLocaleString("pt-BR")}
+                              </span>
+                            ) : (
+                              <span className="font-mono text-xs">
+                                {campaign.cronExpression}
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Jobs:</span>
+                          <span className="font-mono text-sm">
+                            {campaign._count?.jobs || 0}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t">
                         <Button
                           variant="outline"
-                          onClick={() => handlePause(campaign.id, campaign.name)}
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => router.push(`/admin/campaigns/${campaign.id}`)}
                         >
-                          <Pause className="mr-2 h-4 w-4" />
-                          Pausar campanha
+                          <Eye className="mr-2 h-4 w-4" />
+                          Dashboard
                         </Button>
-                      )}
+                        {campaign.status === "DRAFT" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => router.push(`/admin/campaigns/${campaign.id}/edit`)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleStart(campaign.id, campaign.name)}
+                            >
+                              <Play className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        {campaign.status === "RUNNING" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePause(campaign.id, campaign.name)}
+                          >
+                            <Pause className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            : null}
-      </div>
+                  ))}
+          </div>
+
+          {!loading && filteredCampaigns.length > 0 && (
+            <div className="flex flex-col gap-3 border-t p-4 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {paginatedCampaigns.length} de {filteredCampaigns.length.toLocaleString()}{" "}
+                {filteredCampaigns.length === 1 ? "campanha" : "campanhas"}
+                {totalPages > 1 && ` • Página ${currentPage} de ${totalPages}`}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={!canGoPrevious || loading}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={!canGoNext || loading}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {noCampaigns && (
         <div className="py-12 text-center">
@@ -590,6 +832,19 @@ export default function CampaignsPage() {
           </Button>
         </div>
       )}
+
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDialog.onConfirm}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

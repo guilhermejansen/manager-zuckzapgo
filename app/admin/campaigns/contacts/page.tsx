@@ -6,7 +6,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -14,6 +14,7 @@ import { Calendar, Eye, Hash, Plus, Trash2, Upload, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import { deleteContactListAction, getContactListsAction } from "@/app/actions/contacts"
+import { DeleteConfirmationDialog } from "@/components/campaign/delete-confirmation-dialog"
 import { ImportApiDialog } from "@/components/campaign/import-api-dialog"
 import { ImportCsvDialog } from "@/components/campaign/import-csv-dialog"
 import { ImportExcelDialog } from "@/components/campaign/import-excel-dialog"
@@ -30,6 +31,72 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { logger } from "@/lib/logger"
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
+
+/**
+ * Contact Lists Page
+ *
+ * Página de listagem de listas de contatos com ações de importação e gerenciamento.
+ */
 
 /**
  * Contact Lists Page
@@ -71,6 +138,23 @@ export default function ContactListsPage() {
   const [loading, setLoading] = useState(true)
   const [lists, setLists] = useState<ContactList[]>([])
   const [importDialogOpen, setImportDialogOpen] = useState<"csv" | "excel" | "api" | null>(null)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean
+    listId: string
+    listName: string
+  }>({ open: false, listId: "", listName: "" })
+  const totalContacts = useMemo(
+    () =>
+      lists.reduce((sum, list) => {
+        const total = Number(list.totalContacts ?? 0)
+        return Number.isFinite(total) ? sum + total : sum
+      }, 0),
+    [lists]
+  )
+  const averageContacts = useMemo(
+    () => (lists.length > 0 ? Math.round(totalContacts / lists.length) : 0),
+    [lists.length, totalContacts]
+  )
 
   useEffect(() => {
     loadLists()
@@ -101,19 +185,18 @@ export default function ContactListsPage() {
     }
   }
 
-  async function handleDelete(listId: string, listName: string) {
-    if (
-      !confirm(
-        `Tem certeza que deseja deletar a lista "${listName}"? Esta ação não pode ser desfeita.`
-      )
-    ) {
-      return
-    }
+  function openDeleteDialog(listId: string, listName: string) {
+    setDeleteDialog({ open: true, listId, listName })
+  }
+
+  async function confirmDelete() {
+    const { listId } = deleteDialog
 
     try {
       const result = await deleteContactListAction(listId)
       if (result.success) {
         toast.success("Lista deletada com sucesso")
+        setDeleteDialog({ open: false, listId: "", listName: "" })
         loadLists()
       } else {
         toast.error(result.error || "Erro ao deletar lista")
@@ -121,7 +204,7 @@ export default function ContactListsPage() {
     } catch (error) {
       logger.error("Error deleting list", error instanceof Error ? error : undefined, {
         component: "ContactListsPage",
-        action: "handleDelete",
+        action: "confirmDelete",
         metadata: { listId },
       })
       toast.error("Erro ao deletar lista")
@@ -163,27 +246,42 @@ export default function ContactListsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Listas de Contatos</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Listas de Contatos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Gerencie suas listas de contatos para campanhas de WhatsApp
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportDialogOpen("csv")}>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportDialogOpen("csv")}
+            className="w-full sm:w-auto"
+          >
             <Upload className="mr-2 h-4 w-4" />
-            Importar CSV
+            <span className="hidden sm:inline">Importar </span>CSV
           </Button>
-          <Button variant="outline" onClick={() => setImportDialogOpen("excel")}>
+          <Button
+            variant="outline"
+            onClick={() => setImportDialogOpen("excel")}
+            className="w-full sm:w-auto"
+          >
             <Upload className="mr-2 h-4 w-4" />
-            Importar Excel
+            <span className="hidden sm:inline">Importar </span>Excel
           </Button>
-          <Button variant="outline" onClick={() => setImportDialogOpen("api")}>
+          <Button
+            variant="outline"
+            onClick={() => setImportDialogOpen("api")}
+            className="w-full sm:w-auto"
+          >
             <Upload className="mr-2 h-4 w-4" />
-            Importar API
+            <span className="hidden sm:inline">Importar </span>API
           </Button>
-          <Button onClick={() => router.push("/admin/campaigns/contacts/new")}>
+          <Button
+            onClick={() => router.push("/admin/campaigns/contacts/new")}
+            className="w-full sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nova Lista
           </Button>
@@ -205,9 +303,7 @@ export default function ContactListsPage() {
             <CardDescription>Total de Contatos</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {lists.reduce((sum, list) => sum + list.totalContacts, 0)}
-            </div>
+            <div className="text-3xl font-bold">{totalContacts}</div>
           </CardContent>
         </Card>
         <Card>
@@ -215,13 +311,7 @@ export default function ContactListsPage() {
             <CardDescription>Média por Lista</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {lists.length > 0
-                ? Math.round(
-                    lists.reduce((sum, list) => sum + list.totalContacts, 0) / lists.length
-                  )
-                : 0}
-            </div>
+            <div className="text-3xl font-bold">{averageContacts}</div>
           </CardContent>
         </Card>
       </div>
@@ -277,33 +367,39 @@ export default function ContactListsPage() {
                 <TableBody>
                   {lists.map((list) => (
                     <TableRow key={list.id}>
-                      <TableCell className="font-medium">{list.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {list.description || "—"}
+                      <TableCell className="font-medium">
+                        <div className="min-w-[120px]">{list.name}</div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground hidden md:table-cell">
+                        <div className="max-w-[200px] truncate">{list.description || "—"}</div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="secondary">{list.totalContacts}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {list.totalContacts}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-xs sm:text-sm hidden sm:table-cell">
                         {new Date(list.createdAt).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-1 sm:gap-2 justify-end">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => router.push(`/admin/campaigns/contacts/${list.id}`)}
                             title="Ver detalhes"
+                            className="h-8 w-8"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(list.id, list.name)}
+                            onClick={() => openDeleteDialog(list.id, list.name)}
                             title="Deletar lista"
+                            className="h-8 w-8"
                           >
-                            <Trash2 className="h-4 w-4 text-red-600" />
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600" />
                           </Button>
                         </div>
                       </TableCell>
@@ -331,6 +427,16 @@ export default function ContactListsPage() {
         open={importDialogOpen === "api"}
         onOpenChange={(open) => !open && setImportDialogOpen(null)}
         onSuccess={handleImportSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => !open && setDeleteDialog({ open: false, listId: "", listName: "" })}
+        onConfirm={confirmDelete}
+        title="Deletar lista de contatos"
+        description={`Tem certeza que deseja deletar a lista "${deleteDialog.listName}"? Esta ação não pode ser desfeita e todos os contatos da lista serão removidos.`}
+        confirmText="Deletar Lista"
       />
     </div>
   )

@@ -10,13 +10,31 @@ import { useEffect, useState } from "react"
 
 import { useParams, useRouter } from "next/navigation"
 
-import { ArrowLeft, Calendar, Download, Phone, Plus, Search, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  Calendar,
+  ChevronDown,
+  Download,
+  FileSpreadsheet,
+  Phone,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { getContactListAction, removeContactAction } from "@/app/actions/contacts"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -28,6 +46,30 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { logger } from "@/lib/logger"
+
+/**
+ * Contact List Details Page
+ *
+ * Página de detalhes de uma lista de contatos com todos os contatos e filtros.
+ */
+
+/**
+ * Contact List Details Page
+ *
+ * Página de detalhes de uma lista de contatos com todos os contatos e filtros.
+ */
+
+/**
+ * Contact List Details Page
+ *
+ * Página de detalhes de uma lista de contatos com todos os contatos e filtros.
+ */
+
+/**
+ * Contact List Details Page
+ *
+ * Página de detalhes de uma lista de contatos com todos os contatos e filtros.
+ */
 
 /**
  * Contact List Details Page
@@ -198,6 +240,36 @@ export default function ContactListDetailsPage() {
     toast.success("CSV exportado com sucesso!")
   }
 
+  function handleDownloadTemplate(templateType: string) {
+    const templates: Record<string, string> = {
+      individual: "/templates/contacts-individual.csv",
+      groups: "/templates/contacts-groups.csv",
+      channels: "/templates/contacts-channels.csv",
+      complete: "/templates/contacts-complete.csv",
+    }
+
+    const templateUrl = templates[templateType]
+    if (!templateUrl) {
+      toast.error("Template não encontrado")
+      return
+    }
+
+    const link = document.createElement("a")
+    link.href = templateUrl
+    link.download = templateUrl.split("/").pop() || "template.csv"
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast.success("Template baixado com sucesso!")
+    logger.debug("Template downloaded", null, {
+      component: "ContactListDetailsPage",
+      action: "handleDownloadTemplate",
+      metadata: { templateType },
+    })
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -295,10 +367,46 @@ export default function ContactListDetailsPage() {
                   className="pl-9"
                 />
               </div>
+
+              {/* Export CSV Button */}
               <Button variant="outline" onClick={handleExportCsv}>
                 <Download className="mr-2 h-4 w-4" />
                 Exportar CSV
               </Button>
+
+              {/* Download Templates Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Templates
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Baixar Template CSV</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleDownloadTemplate("individual")}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Contatos Individuais
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadTemplate("groups")}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Grupos do WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadTemplate("channels")}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Canais/Newsletters
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleDownloadTemplate("complete")}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4 text-primary" />
+                    <span className="font-medium">Template Completo</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Add Contact Button */}
               <Button onClick={() => router.push(`/admin/campaigns/contacts/${listId}/add`)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar

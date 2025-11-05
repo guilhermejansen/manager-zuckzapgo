@@ -8,26 +8,79 @@
 
 import { useEffect, useMemo, useState } from "react"
 
+import dynamic from "next/dynamic"
 import { useParams, useRouter } from "next/navigation"
 
-import { ArrowLeft, Calendar, Edit, Pause, Play, RefreshCw, X } from "lucide-react"
+import { ArrowLeft, Calendar, Edit, Pause, Play, RefreshCw, Server, Trash2, X } from "lucide-react"
 import type { Edge, Node } from "reactflow"
 import { toast } from "sonner"
 
 import {
   cancelCampaignAction,
+  deleteCampaignAction,
   getCampaignAction,
+  getCampaignInstancesAction,
   pauseCampaignAction,
   startCampaignAction,
 } from "@/app/actions/campaigns"
-import { WorkflowEditor } from "@/components/campaign/workflow-editor"
-import { NODE_DEFINITIONS, type WorkflowNodeType } from "@/components/campaign/workflow-definitions"
-import type { WorkflowFormData } from "@/lib/validations"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { logger } from "@/lib/logger"
+import type { WorkflowFormData } from "@/lib/validations"
+import { deserializeWorkflow } from "@/lib/workflow/serialization"
+
+/**
+ * Campaign Dashboard Page
+ *
+ * Dashboard de campanha com estatísticas em tempo real via SSE.
+ */
+
+/**
+ * Campaign Dashboard Page
+ *
+ * Dashboard de campanha com estatísticas em tempo real via SSE.
+ */
+
+/**
+ * Campaign Dashboard Page
+ *
+ * Dashboard de campanha com estatísticas em tempo real via SSE.
+ */
+
+/**
+ * Campaign Dashboard Page
+ *
+ * Dashboard de campanha com estatísticas em tempo real via SSE.
+ */
+
+/**
+ * Campaign Dashboard Page
+ *
+ * Dashboard de campanha com estatísticas em tempo real via SSE.
+ */
+
+/**
+ * Campaign Dashboard Page
+ *
+ * Dashboard de campanha com estatísticas em tempo real via SSE.
+ */
+
+const WorkflowEditorV2 = dynamic(
+  () => import("@/components/campaign/workflow-editor-v2").then((mod) => mod.WorkflowEditorV2),
+  { ssr: false }
+)
 
 /**
  * Campaign Dashboard Page
@@ -86,6 +139,18 @@ interface CampaignStats {
   replied: number
 }
 
+interface CampaignInstance {
+  id: string
+  instanceId: string
+  token: string
+  name: string
+  priority: number
+  maxRetries: number
+  fallbackOrder: number | null
+  messagesSent: number
+  messagesFailed: number
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -122,48 +187,10 @@ function getStatusBadge(status: CampaignStatus) {
   )
 }
 
-
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function workflowFormDataToEditor(workflow: WorkflowFormData): { nodes: Node[]; edges: Edge[] } {
-  const fallback = { metadata: { version: "1.0.0" }, nodes: [], edges: [] }
-  const safeWorkflow = workflow ?? (fallback as WorkflowFormData)
-  return {
-    nodes: safeWorkflow.nodes.map((node) => {
-      const definition = NODE_DEFINITIONS[node.type as WorkflowNodeType]
-      return {
-        id: node.id,
-        type: node.type,
-        position: node.position,
-        data: {
-          label: node.data.label ?? definition?.label ?? node.type,
-          description: definition?.description ?? "",
-          icon: definition?.icon,
-          theme: definition?.theme ?? {
-            border: "from-slate-500 to-slate-700",
-            background: "bg-slate-900",
-            accent: "bg-slate-700",
-          },
-          active: node.data.active ?? true,
-          config: node.data.config ?? definition?.defaultConfig ?? {},
-          outputs: node.data.outputs ?? definition?.defaultOutputs ?? [],
-          inputs: node.data.inputs ?? [],
-        },
-      }
-    }),
-    edges: safeWorkflow.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle: edge.sourceHandle,
-      targetHandle: edge.targetHandle,
-      type: edge.type,
-      animated: edge.animated,
-    })),
-  }
-}
+// Removed duplicate workflowFormDataToEditor - using deserializeWorkflow from lib instead
 
 // ============================================================================
 // MAIN COMPONENT
@@ -176,6 +203,7 @@ export default function CampaignDashboardPage() {
 
   const [loading, setLoading] = useState(true)
   const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [instances, setInstances] = useState<CampaignInstance[]>([])
   const [stats, setStats] = useState<CampaignStats>({
     total: 0,
     completed: 0,
@@ -186,14 +214,26 @@ export default function CampaignDashboardPage() {
     read: 0,
     replied: 0,
   })
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean
+    title: string
+    description: string
+    onConfirm: () => void
+    variant?: "default" | "destructive"
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+    variant: "default",
+  })
 
-  const transformedWorkflow = useMemo(
-    () =>
-      workflowFormDataToEditor(
-        (campaign?.workflow ?? { metadata: { version: "1.0.0" }, nodes: [], edges: [] }) as WorkflowFormData
-      ),
-    [campaign?.workflow]
-  )
+  const transformedWorkflow = useMemo(() => {
+    if (!campaign?.workflow) {
+      return { nodes: [], edges: [] }
+    }
+    return deserializeWorkflow(campaign.workflow)
+  }, [campaign?.workflow])
 
   useEffect(() => {
     loadCampaign()
@@ -244,13 +284,22 @@ export default function CampaignDashboardPage() {
   async function loadCampaign() {
     setLoading(true)
     try {
-      const result = await getCampaignAction(campaignId)
-      if (result.success && result.data) {
-        setCampaign(result.data as Campaign)
+      const [campaignResult, instancesResult] = await Promise.all([
+        getCampaignAction(campaignId),
+        getCampaignInstancesAction(campaignId),
+      ])
+
+      if (campaignResult.success && campaignResult.data) {
+        setCampaign(campaignResult.data as Campaign)
         toast.success("Campanha carregada com sucesso")
       } else {
-        toast.error(result.error || "Erro ao carregar campanha")
+        toast.error(campaignResult.error || "Erro ao carregar campanha")
         router.push("/admin/campaigns")
+        return
+      }
+
+      if (instancesResult.success && instancesResult.data) {
+        setInstances(instancesResult.data as CampaignInstance[])
       }
     } catch (error) {
       logger.error("Error loading campaign", error instanceof Error ? error : undefined, {
@@ -267,68 +316,126 @@ export default function CampaignDashboardPage() {
 
   async function handleStart() {
     if (!campaign) return
-    if (!confirm(`Iniciar a campanha "${campaign.name}"?`)) return
 
-    try {
-      const result = await startCampaignAction(campaignId)
-      if (result.success) {
-        toast.success("Campanha iniciada com sucesso")
-        loadCampaign()
-      } else {
-        toast.error(result.error || "Erro ao iniciar campanha")
-      }
-    } catch (error) {
-      logger.error("Error starting campaign", error instanceof Error ? error : undefined, {
-        component: "CampaignDashboardPage",
-        action: "startCampaign",
-        metadata: { campaignId },
-      })
-      toast.error("Erro ao iniciar campanha")
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Iniciar Campanha",
+      description: `Tem certeza que deseja iniciar a campanha "${campaign.name}"?`,
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const result = await startCampaignAction(campaignId)
+          if (result.success) {
+            toast.success("Campanha iniciada com sucesso")
+            loadCampaign()
+          } else {
+            toast.error(result.error || "Erro ao iniciar campanha")
+          }
+        } catch (error) {
+          logger.error("Error starting campaign", error instanceof Error ? error : undefined, {
+            component: "CampaignDashboardPage",
+            action: "startCampaign",
+            metadata: { campaignId },
+          })
+          toast.error("Erro ao iniciar campanha")
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
   }
 
   async function handlePause() {
     if (!campaign) return
-    if (!confirm(`Pausar a campanha "${campaign.name}"?`)) return
 
-    try {
-      const result = await pauseCampaignAction(campaignId)
-      if (result.success) {
-        toast.success("Campanha pausada com sucesso")
-        loadCampaign()
-      } else {
-        toast.error(result.error || "Erro ao pausar campanha")
-      }
-    } catch (error) {
-      logger.error("Error pausing campaign", error instanceof Error ? error : undefined, {
-        component: "CampaignDashboardPage",
-        action: "pauseCampaign",
-        metadata: { campaignId },
-      })
-      toast.error("Erro ao pausar campanha")
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Pausar Campanha",
+      description: `Tem certeza que deseja pausar a campanha "${campaign.name}"?`,
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const result = await pauseCampaignAction(campaignId)
+          if (result.success) {
+            toast.success("Campanha pausada com sucesso")
+            loadCampaign()
+          } else {
+            toast.error(result.error || "Erro ao pausar campanha")
+          }
+        } catch (error) {
+          logger.error("Error pausing campaign", error instanceof Error ? error : undefined, {
+            component: "CampaignDashboardPage",
+            action: "pauseCampaign",
+            metadata: { campaignId },
+          })
+          toast.error("Erro ao pausar campanha")
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
   }
 
   async function handleCancel() {
     if (!campaign) return
-    if (!confirm(`Cancelar a campanha "${campaign.name}"? Esta ação não pode ser desfeita.`)) return
 
-    try {
-      const result = await cancelCampaignAction(campaignId)
-      if (result.success) {
-        toast.success("Campanha cancelada com sucesso")
-        loadCampaign()
-      } else {
-        toast.error(result.error || "Erro ao cancelar campanha")
-      }
-    } catch (error) {
-      logger.error("Error cancelling campaign", error instanceof Error ? error : undefined, {
-        component: "CampaignDashboardPage",
-        action: "cancelCampaign",
-        metadata: { campaignId },
-      })
-      toast.error("Erro ao cancelar campanha")
-    }
+    setConfirmDialog({
+      open: true,
+      title: "Cancelar Campanha",
+      description: `Tem certeza que deseja cancelar a campanha "${campaign.name}"? Esta ação não pode ser desfeita.`,
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const result = await cancelCampaignAction(campaignId)
+          if (result.success) {
+            toast.success("Campanha cancelada com sucesso")
+            loadCampaign()
+          } else {
+            toast.error(result.error || "Erro ao cancelar campanha")
+          }
+        } catch (error) {
+          logger.error("Error cancelling campaign", error instanceof Error ? error : undefined, {
+            component: "CampaignDashboardPage",
+            action: "cancelCampaign",
+            metadata: { campaignId },
+          })
+          toast.error("Erro ao cancelar campanha")
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
+  }
+
+  async function handleDelete() {
+    if (!campaign) return
+
+    setConfirmDialog({
+      open: true,
+      title: "Deletar Campanha",
+      description: `Tem certeza que deseja deletar a campanha "${campaign.name}"? Esta ação não pode ser desfeita.`,
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const result = await deleteCampaignAction(campaignId)
+          if (result.success) {
+            toast.success("Campanha deletada com sucesso")
+            router.push("/admin/campaigns")
+          } else {
+            toast.error(result.error || "Erro ao deletar campanha")
+          }
+        } catch (error) {
+          logger.error("Error deleting campaign", error instanceof Error ? error : undefined, {
+            component: "CampaignDashboardPage",
+            action: "deleteCampaign",
+            metadata: { campaignId },
+          })
+          toast.error("Erro ao deletar campanha")
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false }))
+        }
+      },
+    })
   }
 
   if (loading) {
@@ -364,6 +471,11 @@ export default function CampaignDashboardPage() {
   const canCancel =
     campaign.status === "RUNNING" || campaign.status === "PAUSED" || campaign.status === "PENDING"
   const canEdit = campaign.status === "DRAFT"
+  const canDelete =
+    campaign.status === "DRAFT" ||
+    campaign.status === "CANCELLED" ||
+    campaign.status === "COMPLETED" ||
+    campaign.status === "FAILED"
 
   const progressPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
 
@@ -383,11 +495,20 @@ export default function CampaignDashboardPage() {
             {campaign.description && (
               <p className="text-muted-foreground">{campaign.description}</p>
             )}
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <span>Criada em {new Date(campaign.createdAt).toLocaleDateString("pt-BR")}</span>
               </div>
+              {(campaign as any).contactLists && (campaign as any).contactLists.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Lista:</span>
+                  <span>
+                    {(campaign as any).contactLists[0].name} (
+                    {(campaign as any).contactLists[0].contacts?.length || 0} contatos)
+                  </span>
+                </div>
+              )}
               {campaign.type === "SCHEDULED" && campaign.scheduledFor && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
@@ -437,6 +558,12 @@ export default function CampaignDashboardPage() {
               Cancelar
             </Button>
           )}
+          {canDelete && (
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Deletar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -476,6 +603,63 @@ export default function CampaignDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Instances Card */}
+      {instances.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              Instâncias WhatsApp
+            </CardTitle>
+            <CardDescription>
+              {instances.length}{" "}
+              {instances.length === 1 ? "instância configurada" : "instâncias configuradas"} para
+              esta campanha
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {instances.map((instance, index) => (
+                <div
+                  key={instance.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                      {instance.priority}
+                    </div>
+                    <div>
+                      <div className="font-medium">{instance.name}</div>
+                      <div className="text-xs text-muted-foreground">ID: {instance.instanceId}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="text-center">
+                      <div className="text-muted-foreground text-xs">Enviadas</div>
+                      <div className="font-semibold text-green-600">{instance.messagesSent}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground text-xs">Falhadas</div>
+                      <div className="font-semibold text-red-600">{instance.messagesFailed}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground text-xs">Max Retries</div>
+                      <div className="font-semibold">{instance.maxRetries}</div>
+                    </div>
+                    {instance.fallbackOrder !== null && (
+                      <div className="text-center">
+                        <div className="text-muted-foreground text-xs">Fallback</div>
+                        <div className="font-semibold text-blue-600">#{instance.fallbackOrder}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Additional Stats */}
       {(campaign.status === "RUNNING" || campaign.status === "COMPLETED") && (
@@ -546,14 +730,36 @@ export default function CampaignDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="min-h-[400px]">
-            <WorkflowEditor
-              initialNodes={transformedWorkflow.nodes}
-              initialEdges={transformedWorkflow.edges}
-              readOnly
-            />
+            <WorkflowEditorV2 initialWorkflow={campaign?.workflow} readOnly />
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDialog.onConfirm}
+              className={
+                confirmDialog.variant === "destructive"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : ""
+              }
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
