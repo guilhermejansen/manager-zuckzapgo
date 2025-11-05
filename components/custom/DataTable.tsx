@@ -70,6 +70,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   loading?: boolean
   onRowClick?: (row: TData) => void
+  noBorder?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -77,6 +78,7 @@ export function DataTable<TData, TValue>({
   data,
   loading = false,
   onRowClick,
+  noBorder = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -95,7 +97,7 @@ export function DataTable<TData, TValue>({
     <Table className="min-w-full">
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id}>
+          <TableRow key={headerGroup.id} className="hover:bg-transparent">
             {headerGroup.headers.map((header) => (
               <TableHead key={header.id}>
                 {header.isPlaceholder
@@ -135,7 +137,7 @@ export function DataTable<TData, TValue>({
 
   if (loading) {
     return (
-      <div className="rounded-md border bg-card">
+      <div className={noBorder ? "" : "rounded-md border bg-card"}>
         <div className="overflow-x-auto">
           <Table className="min-w-full">
             <TableHeader>
@@ -165,7 +167,7 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="rounded-md border bg-card">
+    <div className={noBorder ? "" : "rounded-md border bg-card"}>
       <div className="overflow-x-auto">{tableMarkup}</div>
     </div>
   )
