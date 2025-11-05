@@ -76,7 +76,7 @@ services:
       HOSTNAME: "0.0.0.0"
 
       # Database
-      DATABASE_URL: postgresql://zuckzapgo:qYWdJ61zk3i1AvTfXhzE!@postgres_manager_zuckzapgo:5432/manager_zuckzapgo?schema=public
+      DATABASE_URL: postgresql://zuckzapgo:qYWdJ61zk3i1@postgres_manager_zuckzapgo:5432/manager_zuckzapgo?schema=public
 
       # Redis
       REDIS_URL: redis://redis_manager_zuckzapgo:6379
@@ -131,7 +131,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: zuckzapgo
-      POSTGRES_PASSWORD: qYWdJ61zk3i1AvTfXhzE!
+      POSTGRES_PASSWORD: qYWdJ61zk3i1
       POSTGRES_DB: manager_zuckzapgo
     volumes:
       - postgres_manager_zuckzapgo_data:/var/lib/postgresql
