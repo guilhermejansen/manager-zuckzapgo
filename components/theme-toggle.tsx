@@ -243,35 +243,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
 
   // Avoid hydration mismatch
   useEffect(() => {
-    // Using setTimeout to avoid synchronous setState in effect
-    const timer = setTimeout(() => setMounted(true), 0)
-    return () => clearTimeout(timer)
+    setMounted(true)
   }, [])
-
-  if (!mounted) {
-    return (
-      <button
-        type="button"
-        className={cn(
-          "size-12 cursor-pointer rounded-full p-2 transition-all duration-300 active:scale-95",
-          "bg-white text-black",
-          className
-        )}
-        aria-label="Toggle theme"
-      >
-        <span className="sr-only">Toggle theme</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          fill="currentColor"
-          strokeLinecap="round"
-          viewBox="0 0 32 32"
-        >
-          <circle cx="16" cy="16" r="8" />
-        </svg>
-      </button>
-    )
-  }
 
   return (
     <button
@@ -279,10 +252,13 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       className={cn(
         "size-12 cursor-pointer rounded-full p-2 transition-all duration-300 active:scale-95",
         isDark ? "bg-black text-white" : "bg-white text-black",
+        // Fade in after hydration to prevent flash
+        mounted ? "opacity-100" : "opacity-0",
         className
       )}
       onClick={toggleTheme}
       aria-label="Toggle theme"
+      suppressHydrationWarning
     >
       <span className="sr-only">Toggle theme</span>
       <svg

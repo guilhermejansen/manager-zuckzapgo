@@ -10,7 +10,7 @@
 
 "use client"
 
-import { ReactNode, useState } from "react"
+import { ReactNode, useState, useEffect } from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -41,7 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useSidebar } from "@/hooks/use-sidebar"
+import { useSidebar, rehydrateSidebar } from "@/hooks/use-sidebar"
 import { cn } from "@/lib/utils"
 
 /**
@@ -538,8 +538,15 @@ const navItems: NavItem[] = [
 
 export function AdminLayout({ children, user }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { isCollapsed, toggle } = useSidebar()
   const pathname = usePathname()
+
+  // Rehydrate sidebar state from localStorage after mount
+  useEffect(() => {
+    rehydrateSidebar()
+    setMounted(true)
+  }, [])
 
   const breadcrumbs = pathname
     .split("/")
@@ -596,8 +603,11 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
       <aside
         className={cn(
           "hidden border-r bg-muted/40 transition-all duration-300 ease-in-out lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:z-30 lg:flex lg:h-screen lg:flex-col",
-          isCollapsed ? "lg:w-16" : "lg:w-64"
+          isCollapsed ? "lg:w-16" : "lg:w-64",
+          // Fade in after hydration to prevent flash
+          mounted ? "opacity-100" : "opacity-0"
         )}
+        suppressHydrationWarning
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b p-4">
@@ -654,9 +664,12 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
       {/* Main Content */}
       <div
         className={cn(
-          "flex min-h-screen flex-1 flex-col transition-[margin] duration-300 ease-in-out",
-          isCollapsed ? "lg:ml-16" : "lg:ml-64"
+          "flex min-h-screen flex-1 flex-col transition-[margin,opacity] duration-300 ease-in-out",
+          isCollapsed ? "lg:ml-16" : "lg:ml-64",
+          // Fade in after hydration to prevent flash
+          mounted ? "opacity-100" : "opacity-0"
         )}
+        suppressHydrationWarning
       >
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-4 sm:px-6 lg:px-8">

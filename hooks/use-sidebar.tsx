@@ -18,10 +18,15 @@ const useSidebarStore = create<SidebarStore>()(
     }),
     {
       name: "sidebar-state",
+      skipHydration: true,
     }
   )
 )
 
 export const useSidebar = () => {
   return useSidebarStore()
+}
+
+export const rehydrateSidebar = () => {
+  useSidebarStore.persist.rehydrate()
 }
