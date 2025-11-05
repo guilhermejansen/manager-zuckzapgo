@@ -530,28 +530,36 @@ export type CreateContactListFormData = z.infer<typeof createContactListSchema>
 export const addContactSchema = z.object({
   jid: z
     .string()
-    .min(10, "JID inválido")
-    .regex(
-      /^[\d]+@(s\.whatsapp\.net|lid|g\.us|newsletter|broadcast|c\.us|bot|hosted|hosted\.lid|msgr|interop)$/,
-      "Formato de JID inválido (ex: 5511999999999@s.whatsapp.net, 1234567890@g.us, channel@newsletter)"
+    .min(1, "JID é obrigatório")
+    .refine(
+      (val) => {
+        // Aceita tanto número puro quanto JID completo
+        const numberOnly = /^[\d\w]+$/
+        const fullJid =
+          /^[\d\w]+@(s\.whatsapp\.net|lid|g\.us|newsletter|broadcast|c\.us|bot|hosted|hosted\.lid|msgr|interop)$/
+        const statusBroadcast = /^status@broadcast$/
+
+        return numberOnly.test(val) || fullJid.test(val) || statusBroadcast.test(val)
+      },
+      {
+        message: "Digite apenas o número/ID. Exemplo: 5511999999999",
+      }
     ),
   name: z.string().max(200).optional().or(z.literal("")),
   pushName: z.string().max(200).optional().or(z.literal("")),
-  type: z
-    .enum([
-      "INDIVIDUAL", // s.whatsapp.net, c.us
-      "LID", // lid
-      "GROUP", // g.us
-      "NEWSLETTER", // newsletter
-      "BROADCAST", // broadcast
-      "BOT", // bot
-      "HOSTED", // hosted
-      "HOSTED_LID", // hosted.lid
-      "MESSENGER", // msgr
-      "INTEROP", // interop
-      "STATUS", // status@broadcast
-    ])
-    .default("INDIVIDUAL"),
+  type: z.enum([
+    "INDIVIDUAL", // s.whatsapp.net, c.us
+    "LID", // lid
+    "GROUP", // g.us
+    "NEWSLETTER", // newsletter
+    "BROADCAST", // broadcast
+    "BOT", // bot
+    "HOSTED", // hosted
+    "HOSTED_LID", // hosted.lid
+    "MESSENGER", // msgr
+    "INTEROP", // interop
+    "STATUS", // status@broadcast
+  ]),
   customFields: z.record(z.string(), z.any()).optional(),
 })
 
