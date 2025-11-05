@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,113 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
-// ENUMS
-// ============================================================================
-
-enum CampaignType {
-  SINGLE // Disparo único imediato
-  SCHEDULED // Agendado para data/hora específica
-  RECURRING // Recorrente (cron-based)
-}
-
-enum CampaignStatus {
-  DRAFT // Rascunho (editável)
-  SCHEDULED // Agendado (não iniciado)
-  RUNNING // Em execução
-  PAUSED // Pausado
-  COMPLETED // Concluído
-  FAILED // Falhou
-  CANCELLED // Cancelado
-}
-
-enum ContactSource {
-  MANUAL // Criado manualmente
-  CSV // Importado de CSV
-  EXCEL // Importado de Excel
-  API // Importado da API ZuckZapGo
-}
-
-enum ContactType {
-  INDIVIDUAL // Contato individual (s.whatsapp.net, c.us)
-  LID // Usuário com LID (lid)
-  GROUP // Grupo do WhatsApp (g.us)
-  NEWSLETTER // Canal/Newsletter (newsletter)
-  BROADCAST // Lista de transmissão (broadcast)
-  BOT // Bot do WhatsApp (bot)
-  HOSTED // Hosted server (hosted)
-  HOSTED_LID // Hosted LID server (hosted.lid)
-  MESSENGER // Messenger interop (msgr)
-  INTEROP // General interop (interop)
-  STATUS // Status broadcast (status@broadcast)
-}
-
-enum MessageType {
-  TEXT // Mensagem de texto simples
-  MEDIA // Imagem, vídeo, áudio, documento
-  TEMPLATE // Template do WhatsApp Business
-  INTERACTIVE // Botões, listas, etc
-  LOCATION // Localização
-  CONTACT // Contato vCard
-  REACTION // Reação a mensagem
-}
-
-enum JobStatus {
-  PENDING // Aguardando processamento
-  PROCESSING // Sendo processado
-  COMPLETED // Completado com sucesso
-  FAILED // Falhou após todas tentativas
-  RETRYING // Em nova tentativa
-  CANCELLED // Cancelado
-}
-
-enum UserRole {
-  ADMIN // Admin - acessa todas instâncias
-  USER // Usuário - acessa apenas suas instâncias
-}
-
-// ============================================================================
-// MODELS
-// ============================================================================
-
 model Campaign {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-
-  // Tipo e status
-  type   CampaignType
-  status CampaignStatus @default(DRAFT)
-
-  // Workflow visual (React Flow nodes/edges)
-  workflow Json // { nodes: [], edges: [] }
-
-  // Agendamento
-  scheduledAt    DateTime? // Para SCHEDULED
-  cronExpression String? // Para RECURRING (ex: "0 9 * * 1-5")
-  timezone       String? // Timezone (ex: "America/Sao_Paulo")
-
-  // Configurações
-  enableFallback        Boolean @default(true)
-  randomizeInstances    Boolean @default(true)
-  maxRetriesPerInstance Int     @default(3)
-
-  // Relações
-  instances    CampaignInstance[]
-  contactLists ContactList[]
-  messages     CampaignMessage[]
-  jobs         CampaignJob[]
-  stats        CampaignStats?
-
-  // Multi-tenant
-  userId   String // ID do usuário do Manager
-  userRole UserRole @default(USER)
-
-  // Audit
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  startedAt   DateTime? // Quando iniciou execução
-  completedAt DateTime? // Quando finalizou
+  id                    String             @id @default(cuid())
+  name                  String
+  description           String?
+  type                  CampaignType
+  status                CampaignStatus     @default(DRAFT)
+  workflow              Json
+  scheduledAt           DateTime?
+  cronExpression        String?
+  timezone              String?
+  enableFallback        Boolean            @default(true)
+  randomizeInstances    Boolean            @default(true)
+  maxRetriesPerInstance Int                @default(3)
+  userId                String
+  userRole              UserRole           @default(USER)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  startedAt             DateTime?
+  completedAt           DateTime?
+  instances             CampaignInstance[]
+  jobs                  CampaignJob[]
+  messages              CampaignMessage[]
+  stats                 CampaignStats?
+  contactLists          ContactList[]      @relation("CampaignToContactList")
 
   @@index([userId])
   @@index([status])
@@ -125,54 +39,39 @@ model Campaign {
 }
 
 model CampaignInstance {
-  id         String   @id @default(cuid())
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  // Configuração da instância ZuckZapGo
-  instanceId String // User ID da API ZuckZapGo
-  token      String // Token de autenticação
-  name       String? // Nome amigável (opcional)
-
-  // Fallback config
-  priority      Int  @default(0) // 0 = mais alta
-  maxRetries    Int  @default(3)
-  fallbackOrder Int? // Ordem no fallback (se randomize=false)
-
-  // Estatísticas desta instância
+  id             String    @id @default(cuid())
+  campaignId     String
+  instanceId     String
+  token          String
+  name           String?
+  priority       Int       @default(0)
+  maxRetries     Int       @default(3)
+  fallbackOrder  Int?
   messagesSent   Int       @default(0)
   messagesFailed Int       @default(0)
   lastUsedAt     DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  campaign       Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@unique([campaignId, instanceId])
   @@index([campaignId])
 }
 
 model ContactList {
-  id          String  @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
   description String?
-
-  // Origem e tipo
-  source ContactSource
-  type   ContactType   @default(INDIVIDUAL)
-
-  // Metadados da importação
+  source      ContactSource
+  type        ContactType   @default(INDIVIDUAL)
   importedAt  DateTime?
-  importedBy  String? // userId
-  fileName    String? // Para CSV/Excel
-  apiEndpoint String? // Para API
-
-  // Relações
-  contacts  Contact[]
-  campaigns Campaign[]
-
-  // Audit
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  importedBy  String?
+  fileName    String?
+  apiEndpoint String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  contacts    Contact[]
+  campaigns   Campaign[]    @relation("CampaignToContactList")
 
   @@index([source])
   @@index([type])
@@ -181,25 +80,16 @@ model ContactList {
 model Contact {
   id            String      @id @default(cuid())
   contactListId String
+  jid           String
+  name          String?
+  pushName      String?
+  type          ContactType @default(INDIVIDUAL)
+  customFields  Json?
+  isValid       Boolean     @default(true)
+  lastError     String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   contactList   ContactList @relation(fields: [contactListId], references: [id], onDelete: Cascade)
-
-  // Identificação WhatsApp
-  jid      String // JID completo (ex: 5511999999999@s.whatsapp.net)
-  name     String?
-  pushName String? // Nome no WhatsApp
-
-  // Tipo do contato
-  type ContactType @default(INDIVIDUAL)
-
-  // Campos personalizados (para templates)
-  customFields Json? // { "nome": "João", "empresa": "XYZ" }
-
-  // Metadados
-  isValid   Boolean @default(true)
-  lastError String? // Se inválido, motivo
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@unique([contactListId, jid])
   @@index([contactListId])
@@ -208,58 +98,39 @@ model Contact {
 }
 
 model CampaignMessage {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  // Workflow node reference
-  nodeId String // ID do node no React Flow
-  order  Int // Ordem de execução
-
-  // Tipo e conteúdo
-  type    MessageType
-  content Json // Payload específico por tipo
-
-  // Delay antes desta mensagem (em ms)
-  delayMs Int? @default(0)
-
-  // Metadados
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  nodeId     String
+  order      Int
+  type       MessageType
+  content    Json
+  delayMs    Int?        @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@unique([campaignId, nodeId])
   @@index([campaignId])
 }
 
 model CampaignJob {
-  id        String @id @default(cuid())
-  bullJobId String @unique // ID do job no BullMQ
-
-  // Relação com campanha
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  // Contato e instância
-  contactJid  String // JID do destinatário
+  id          String    @id @default(cuid())
+  bullJobId   String    @unique
+  campaignId  String
+  contactJid  String
   contactName String?
-  instanceId  String // Instância atual tentando enviar
-
-  // Status e tentativas
+  instanceId  String
   status      JobStatus @default(PENDING)
   attempts    Int       @default(0)
-  maxAttempts Int       @default(12) // 3 retries x 4 instâncias
-
-  // Resultados
+  maxAttempts Int       @default(12)
   lastError   String?
   sentAt      DateTime?
   completedAt DateTime?
-
-  // BullMQ metadata
   queuedAt    DateTime  @default(now())
   processedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([status])
@@ -267,28 +138,80 @@ model CampaignJob {
 }
 
 model CampaignStats {
-  id         String   @id @default(cuid())
-  campaignId String   @unique
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  campaignId      String    @unique
+  totalContacts   Int       @default(0)
+  totalMessages   Int       @default(0)
+  messagesSent    Int       @default(0)
+  messagesFailed  Int       @default(0)
+  messagesPending Int       @default(0)
+  avgDeliveryTime Int?
+  successRate     Float?
+  startedAt       DateTime?
+  lastMessageAt   DateTime?
+  estimatedEndAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
 
-  // Contadores gerais
-  totalContacts Int @default(0)
-  totalMessages Int @default(0) // total contacts * messages per contact
+enum CampaignType {
+  SINGLE
+  SCHEDULED
+  RECURRING
+}
 
-  // Progresso
-  messagesSent    Int @default(0)
-  messagesFailed  Int @default(0)
-  messagesPending Int @default(0)
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
 
-  // Performance
-  avgDeliveryTime Int? // Tempo médio de entrega (ms)
-  successRate     Float? // Taxa de sucesso (0-100)
+enum ContactSource {
+  MANUAL
+  CSV
+  EXCEL
+  API
+}
 
-  // Temporização
-  startedAt      DateTime?
-  lastMessageAt  DateTime? // Última mensagem enviada
-  estimatedEndAt DateTime?
+enum ContactType {
+  INDIVIDUAL
+  LID
+  GROUP
+  NEWSLETTER
+  BROADCAST
+  BOT
+  HOSTED
+  HOSTED_LID
+  MESSENGER
+  INTEROP
+  STATUS
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum MessageType {
+  TEXT
+  MEDIA
+  TEMPLATE
+  INTERACTIVE
+  LOCATION
+  CONTACT
+  REACTION
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum UserRole {
+  ADMIN
+  USER
 }
