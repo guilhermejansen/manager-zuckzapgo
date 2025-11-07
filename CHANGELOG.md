@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.5.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.5.0...v1.5.1) (2025-11-07)
+
+### 🐛 Correções de Bugs
+
+* **campaign:** fix nodev2 (3080c3c45eae4ba5d53179752463e9228340ced7)
+
 ## [1.5.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.4.1...v1.5.0) (2025-11-05)
 
 ### ✨ Novas Funcionalidades
