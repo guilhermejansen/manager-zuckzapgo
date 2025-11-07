@@ -1,18 +1,11 @@
 "use client"
 
-import { createElement, memo, useMemo } from "react"
+import { createElement, memo } from "react"
 
-import { Copy, MoreHorizontal, Play, Trash2 } from "lucide-react"
+import { Copy, Trash2 } from "lucide-react"
 import { Handle, type NodeProps, Position } from "reactflow"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 import type {
@@ -54,29 +47,19 @@ export interface BaseNodeData {
 }
 
 function BaseNodeComponent({ data, id }: NodeProps<BaseNodeData>) {
-  const isActive = data.active ?? true
-  const menuItems = useMemo(
-    () =>
-      [
-        data.actions?.onOpenSettings && {
-          label: "Open settings",
-          action: data.actions.onOpenSettings,
-        },
-        data.actions?.onExecute && { label: "Execute step", action: data.actions.onExecute },
-        data.actions?.onToggleActive && {
-          label: isActive ? "Deactivate" : "Activate",
-          action: data.actions.onToggleActive,
-        },
-        data.actions?.onDuplicate && { label: "Duplicate", action: data.actions.onDuplicate },
-        data.actions?.onDelete && {
-          label: "Delete",
-          action: data.actions.onDelete,
-          destructive: true,
-        },
-      ].filter(Boolean),
-    [data.actions, isActive]
-  )
+  // ✅ VALIDAÇÃO: Verificar se theme existe
+  if (!data.theme) {
+    console.error(`Node ${id} missing theme configuration`, data)
+    return (
+      <div className="rounded-lg border-2 border-red-500 bg-red-500/10 p-4 min-w-[320px]">
+        <p className="text-sm font-semibold text-red-400 mb-1">⚠️ Erro de Configuração</p>
+        <p className="text-xs text-red-300">Node sem theme definido (ID: {id})</p>
+        <p className="text-xs text-red-300 mt-1">Type: {data.label || "Unknown"}</p>
+      </div>
+    )
+  }
 
+  const isActive = data.active ?? true
   return (
     <div
       className={cn(
@@ -110,7 +93,11 @@ function BaseNodeComponent({ data, id }: NodeProps<BaseNodeData>) {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
-                onClick={data.actions.onDuplicate}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  data.actions?.onDuplicate?.()
+                }}
                 title="Duplicate node"
               >
                 <Copy className="h-3.5 w-3.5" />
@@ -121,7 +108,11 @@ function BaseNodeComponent({ data, id }: NodeProps<BaseNodeData>) {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 text-white/70 hover:text-red-400 hover:bg-red-500/10"
-                onClick={data.actions.onDelete}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  data.actions?.onDelete?.()
+                }}
                 title="Delete node"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -131,10 +122,24 @@ function BaseNodeComponent({ data, id }: NodeProps<BaseNodeData>) {
         </div>
 
         {data.content ? (
-          <div className="mt-4 space-y-3 text-sm text-white/80">{data.content}</div>
+          <div
+            className={cn("mt-4 space-y-3 text-sm text-white/80", "nodrag nopan")}
+            onPointerDown={(event) => event.stopPropagation()}
+            onWheel={(event) => event.stopPropagation()}
+          >
+            {data.content}
+          </div>
         ) : null}
 
-        {data.footer ? <div className="mt-4 text-xs text-white/60">{data.footer}</div> : null}
+        {data.footer ? (
+          <div
+            className={cn("mt-4 text-xs text-white/60", "nodrag nopan")}
+            onPointerDown={(event) => event.stopPropagation()}
+            onWheel={(event) => event.stopPropagation()}
+          >
+            {data.footer}
+          </div>
+        ) : null}
       </div>
 
       {data.allowInput !== false ? (

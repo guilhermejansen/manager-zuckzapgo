@@ -1,15 +1,18 @@
 "use client"
 
 import { useTheme } from "next-themes"
+
 import {
-  Play,
-  MessageSquare,
+  CircleStop,
+  Clock,
   Image,
   MessageCircle,
-  Clock,
-  CircleStop,
-  X
+  MessageSquare,
+  Play,
+  Webhook,
+  X,
 } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -36,7 +39,7 @@ const NODE_TEMPLATES: NodeTemplate[] = [
     description: "Ponto de partida do workflow",
     icon: Play,
     category: "trigger",
-    color: "text-green-500 dark:text-green-400"
+    color: "text-green-500 dark:text-green-400",
   },
   {
     type: "message.text",
@@ -44,7 +47,7 @@ const NODE_TEMPLATES: NodeTemplate[] = [
     description: "Enviar mensagem de texto",
     icon: MessageSquare,
     category: "message",
-    color: "text-blue-500 dark:text-blue-400"
+    color: "text-blue-500 dark:text-blue-400",
   },
   {
     type: "message.media",
@@ -52,7 +55,7 @@ const NODE_TEMPLATES: NodeTemplate[] = [
     description: "Enviar imagem, vídeo, áudio ou documento",
     icon: Image,
     category: "message",
-    color: "text-purple-500 dark:text-purple-400"
+    color: "text-purple-500 dark:text-purple-400",
   },
   {
     type: "message.interactive",
@@ -60,7 +63,7 @@ const NODE_TEMPLATES: NodeTemplate[] = [
     description: "Botões ou lista de opções",
     icon: MessageCircle,
     category: "message",
-    color: "text-orange-500 dark:text-orange-400"
+    color: "text-orange-500 dark:text-orange-400",
   },
   {
     type: "control.delay",
@@ -68,7 +71,15 @@ const NODE_TEMPLATES: NodeTemplate[] = [
     description: "Aguardar um tempo antes de continuar",
     icon: Clock,
     category: "control",
-    color: "text-violet-500 dark:text-violet-400"
+    color: "text-violet-500 dark:text-violet-400",
+  },
+  {
+    type: "integration.http",
+    label: "HTTP Request",
+    description: "Chamada HTTP externa",
+    icon: Webhook,
+    category: "control",
+    color: "text-indigo-500 dark:text-indigo-400",
   },
   {
     type: "control.end",
@@ -76,8 +87,8 @@ const NODE_TEMPLATES: NodeTemplate[] = [
     description: "Finaliza o workflow",
     icon: CircleStop,
     category: "control",
-    color: "text-red-500 dark:text-red-400"
-  }
+    color: "text-red-500 dark:text-red-400",
+  },
 ]
 
 export function WorkflowSidebar({ isOpen, onClose, isFullscreen = false }: WorkflowSidebarProps) {
@@ -104,13 +115,13 @@ export function WorkflowSidebar({ isOpen, onClose, isFullscreen = false }: Workf
       )}
     >
       {/* Header */}
-      <div className={cn(
-        "flex items-center justify-between px-4 py-3 flex-shrink-0",
-        "border-b border-gray-200 dark:border-white/[0.08]"
-      )}>
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-          Adicionar Node
-        </h3>
+      <div
+        className={cn(
+          "flex items-center justify-between px-4 py-3 flex-shrink-0",
+          "border-b border-gray-200 dark:border-white/[0.08]"
+        )}
+      >
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Adicionar Node</h3>
         <Button
           size="icon"
           variant="ghost"
@@ -145,26 +156,27 @@ export function WorkflowSidebar({ isOpen, onClose, isFullscreen = false }: Workf
               )}
             >
               <div className="flex items-start gap-3">
-                <div className={cn(
-                  "mt-0.5 flex-shrink-0 p-2 rounded-lg",
-                  "bg-gray-100 dark:bg-white/[0.05]",
-                  "group-hover:bg-gray-200 dark:group-hover:bg-white/[0.08]",
-                  "transition-colors duration-200",
-                  node.color
-                )}>
+                <div
+                  className={cn(
+                    "mt-0.5 flex-shrink-0 p-2 rounded-lg",
+                    "bg-gray-100 dark:bg-white/[0.05]",
+                    "group-hover:bg-gray-200 dark:group-hover:bg-white/[0.08]",
+                    "transition-colors duration-200",
+                    node.color
+                  )}
+                >
                   {node.icon && <node.icon className="h-4 w-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={cn(
-                    "text-sm font-medium mb-1 leading-tight",
-                    "text-gray-900 dark:text-white"
-                  )}>
+                  <div
+                    className={cn(
+                      "text-sm font-medium mb-1 leading-tight",
+                      "text-gray-900 dark:text-white"
+                    )}
+                  >
                     {node.label}
                   </div>
-                  <div className={cn(
-                    "text-xs leading-snug",
-                    "text-gray-500 dark:text-white/50"
-                  )}>
+                  <div className={cn("text-xs leading-snug", "text-gray-500 dark:text-white/50")}>
                     {node.description}
                   </div>
                 </div>

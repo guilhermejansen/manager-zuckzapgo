@@ -1,7 +1,20 @@
-# 🔄 ANÁLISE DE MIGRAÇÃO: nodes/ → nodes-v2/
+# ⚠️ DOCUMENTO OBSOLETO - NÃO USAR
+
+> **IMPORTANTE**: Este documento descreve uma migração `nodes/` → `nodes-v2/` que **NUNCA FOI REALIZADA**.
+> 
+> **SITUAÇÃO ATUAL (05/11/2025)**:
+> - ✅ `components/campaign/nodes/` - **ÚNICA PASTA EXISTENTE** (8 arquivos funcionais)
+> - ❌ `components/campaign/nodes-v2/` - **NÃO EXISTE**
+> 
+> Todo o sistema usa `nodes/` diretamente. Esta documentação foi mantida apenas para referência histórica.
+
+---
+
+# 🔄 ANÁLISE DE MIGRAÇÃO: nodes/ → nodes-v2/ (CANCELADA)
 
 **Data**: 03/11/2025 19:00 BRT  
-**Objetivo**: Migração completa e segura de `components/campaign/nodes/` para `components/campaign/nodes-v2/`
+**Status**: CANCELADA - Nunca foi executada
+**Objetivo Original**: Migração completa e segura de `components/campaign/nodes/` para `components/campaign/nodes-v2/`
 
 ---
 

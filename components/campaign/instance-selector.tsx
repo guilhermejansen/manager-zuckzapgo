@@ -87,6 +87,13 @@ import type { User } from "@/types"
  * Features: search, filter, drag & drop reorder, priority management.
  */
 
+/**
+ * Instance Selector Component
+ *
+ * Multi-select component for selecting WhatsApp instances for campaigns.
+ * Features: search, filter, drag & drop reorder, priority management.
+ */
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -411,12 +418,13 @@ export function InstanceSelector({
           <div className="space-y-4">
             {/* Filters */}
             <div className="flex gap-4">
-              <div className="flex-1">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome, token ou JID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  leftIcon={<Search className="h-4 w-4" />}
+                  className="pl-10"
                 />
               </div>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>

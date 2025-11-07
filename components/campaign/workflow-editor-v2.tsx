@@ -17,8 +17,6 @@ import ReactFlow, {
   ReactFlowProvider,
   addEdge,
   getStraightPath,
-  useEdgesState,
-  useNodesState,
 } from "reactflow"
 import "reactflow/dist/style.css"
 
@@ -29,8 +27,10 @@ import { cn } from "@/lib/utils"
 import type { WorkflowFormData } from "@/lib/validations"
 import { deserializeWorkflow, serializeWorkflow } from "@/lib/workflow/serialization"
 
+import { NODE_DEFINITIONS, type WorkflowNodeType } from "./workflow-definitions"
 import { WorkflowSidebar } from "./workflow-sidebar"
 import { WorkflowToolbar } from "./workflow-toolbar"
+import type { WorkflowNodeInput } from "./workflow-types"
 
 // Dynamic imports para evitar SSR issues
 const StartNodeV2 = dynamic(() => import("./nodes/start-node"), { ssr: false })
@@ -48,17 +48,8 @@ const HttpRequestNodeV2 = dynamic(() => import("./nodes/http-request-node"), { s
 const EndNode = dynamic(() => import("./nodes/end-node"), { ssr: false })
 
 // Custom Edge com botão de delete
-function CustomEdge({
-  id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  source,
-  target,
-  markerEnd,
-}: EdgeProps) {
-  const { removeNode } = useWorkflow()
+function CustomEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd }: EdgeProps) {
+  const { setEdges } = useWorkflow()
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,
@@ -67,13 +58,8 @@ function CustomEdge({
   })
 
   const onEdgeDelete = useCallback(() => {
-    const reactFlow = (window as any).reactFlowInstance
-    if (reactFlow) {
-      const edges = reactFlow.getEdges()
-      const newEdges = edges.filter((e: Edge) => e.id !== id)
-      reactFlow.setEdges(newEdges)
-    }
-  }, [id])
+    setEdges((prev) => prev.filter((edge) => edge.id !== id))
+  }, [id, setEdges])
 
   return (
     <>
@@ -117,6 +103,48 @@ const NODE_TYPES = {
 const EDGE_TYPES = {
   default: CustomEdge,
 } as const
+
+type NodeHandlerMap = {
+  onDuplicate: (nodeId: string) => void
+  onDelete: (nodeId: string) => void
+  onConfigChange: (nodeId: string, patch: Record<string, unknown>) => void
+  onInputsChange: (nodeId: string, inputs: WorkflowNodeInput[]) => void
+}
+
+// Função para enriquecer nodes com dados de NODE_DEFINITIONS
+function enrichNodeWithDefinition(node: Node, handlers?: NodeHandlerMap): Node {
+  const definition = NODE_DEFINITIONS[node.type as WorkflowNodeType]
+
+  if (!definition) {
+    console.error(`Unknown node type: ${node.type}`, node)
+    return node // Retorna node original se tipo desconhecido
+  }
+
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      label: definition.label,
+      description: definition.description,
+      icon: definition.icon,
+      theme: definition.theme,
+      active: node.data?.active ?? true,
+      // Adicionar actions se handlers foram fornecidos
+      actions: handlers
+        ? {
+            onDuplicate: () => handlers.onDuplicate(node.id),
+            onDelete: () => handlers.onDelete(node.id),
+          }
+        : node.data?.actions,
+      onConfigChange: handlers
+        ? (patch: Record<string, unknown>) => handlers.onConfigChange(node.id, patch)
+        : node.data?.onConfigChange,
+      onInputsChange: handlers
+        ? (inputs: WorkflowNodeInput[]) => handlers.onInputsChange(node.id, inputs)
+        : node.data?.onInputsChange,
+    },
+  }
+}
 
 // Initial nodes with explicit dimensions for SSR
 const initialNodes: Node[] = [
@@ -202,11 +230,67 @@ function WorkflowEditorContent({
   initialWorkflow,
   readOnly = false,
 }: WorkflowEditorV2Props) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-  const { removeNode, duplicateNode } = useWorkflow()
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onNodesChange,
+    onEdgesChange,
+    updateNode,
+    removeNode,
+    duplicateNode,
+  } = useWorkflow()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
+
+  // Handlers para duplicate e delete
+  const handleDuplicate = useCallback(
+    (nodeId: string) => {
+      duplicateNode(nodeId)
+    },
+    [duplicateNode]
+  )
+
+  const handleDelete = useCallback(
+    (nodeId: string) => {
+      removeNode(nodeId)
+    },
+    [removeNode]
+  )
+
+  const handleConfigChange = useCallback(
+    (nodeId: string, patch: Record<string, unknown>) => {
+      updateNode(nodeId, (currentData) => {
+        const previousConfig = (currentData?.config as Record<string, unknown> | undefined) ?? {}
+
+        return {
+          config: {
+            ...previousConfig,
+            ...patch,
+          },
+        }
+      })
+    },
+    [updateNode]
+  )
+
+  const handleInputsChange = useCallback(
+    (nodeId: string, inputs: WorkflowNodeInput[]) => {
+      updateNode(nodeId, { inputs })
+    },
+    [updateNode]
+  )
+
+  const nodeHandlers = useMemo<NodeHandlerMap>(
+    () => ({
+      onDuplicate: handleDuplicate,
+      onDelete: handleDelete,
+      onConfigChange: handleConfigChange,
+      onInputsChange: handleInputsChange,
+    }),
+    [handleDuplicate, handleDelete, handleConfigChange, handleInputsChange]
+  )
 
   // Deserializar initialWorkflow quando componente monta
   useEffect(() => {
@@ -323,11 +407,24 @@ function WorkflowEditorContent({
         "control.end": {},
       }
 
+      // Obter definição do node para incluir theme, label, icon, etc.
+      const definition = NODE_DEFINITIONS[type as WorkflowNodeType]
+
+      if (!definition) {
+        console.error(`Unknown node type dropped: ${type}`)
+        return
+      }
+
       const newNode: Node = {
         id: generateDeterministicId("node"),
         type,
         position,
         data: {
+          label: definition.label,
+          description: definition.description,
+          icon: definition.icon,
+          theme: definition.theme,
+          active: true,
           config: defaultConfigs[type] || {},
         },
       }
@@ -337,20 +434,11 @@ function WorkflowEditorContent({
     [setNodes]
   )
 
-  // Adiciona actions de delete e duplicate a todos os nodes
-  const nodesWithActions = useMemo(() => {
-    return nodes.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        actions: {
-          ...node.data.actions,
-          onDelete: () => removeNode(node.id),
-          onDuplicate: () => duplicateNode(node.id),
-        },
-      },
-    }))
-  }, [nodes, removeNode, duplicateNode])
+  // Enriquecer nodes com actions sempre que nodes mudar
+  const enrichedNodes = useMemo(
+    () => nodes.map((node) => enrichNodeWithDefinition(node, nodeHandlers)),
+    [nodes, nodeHandlers]
+  )
 
   return (
     <div
@@ -364,7 +452,7 @@ function WorkflowEditorContent({
       }}
     >
       <ReactFlow
-        nodes={nodesWithActions}
+        nodes={enrichedNodes}
         edges={edges}
         onNodesChange={readOnly ? undefined : onNodesChange}
         onEdgesChange={readOnly ? undefined : onEdgesChange}
@@ -416,17 +504,9 @@ export function WorkflowEditorV2({
   initialWorkflow,
   readOnly = false,
 }: WorkflowEditorV2Props) {
-  const [nodes, setNodes] = useNodesState(initialNodes)
-  const [edges, setEdges] = useEdgesState(initialEdges)
-
   return (
     <ReactFlowProvider>
-      <WorkflowProvider
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={setNodes}
-        onEdgesChange={setEdges}
-      >
+      <WorkflowProvider initialNodes={initialNodes} initialEdges={initialEdges}>
         <WorkflowEditorContent
           className={className}
           onExitFullscreen={onExitFullscreen}

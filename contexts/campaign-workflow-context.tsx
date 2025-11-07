@@ -1,149 +1,163 @@
 "use client"
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
-import type { Node, Edge } from "reactflow"
+
+import {
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+} from "react"
+
+import {
+  type Edge,
+  type EdgeChange,
+  type Node,
+  type NodeChange,
+  useEdgesState,
+  useNodesState,
+} from "reactflow"
+
+import { generateDeterministicId } from "@/lib/id-generator"
+
+type NodeUpdates = Record<string, unknown>
+
+type NodeUpdateInput = NodeUpdates | ((currentData: Node["data"] | undefined) => NodeUpdates)
 
 interface WorkflowContextType {
   nodes: Node[]
   edges: Edge[]
-  updateNode: (nodeId: string, updates: any) => void
+  setNodes: Dispatch<SetStateAction<Node[]>>
+  setEdges: Dispatch<SetStateAction<Edge[]>>
+  onNodesChange: (changes: NodeChange[]) => void
+  onEdgesChange: (changes: EdgeChange[]) => void
+  updateNode: (nodeId: string, updates: NodeUpdateInput) => void
   addNode: (node: Node) => void
   removeNode: (nodeId: string) => void
   duplicateNode: (nodeId: string) => void
-  updateEdge: (edgeId: string, updates: any) => void
+  updateEdge: (edgeId: string, updates: NodeUpdates) => void
 }
 
 const WorkflowContext = createContext<WorkflowContextType | null>(null)
 
+function sanitizeNodeData(data: Node["data"]) {
+  if (!data || typeof data !== "object") return data
+  const {
+    actions: _actions,
+    onConfigChange: _onConfigChange,
+    onInputsChange: _onInputsChange,
+    ...rest
+  } = data as Record<string, unknown>
+  return { ...rest }
+}
+
 export function WorkflowProvider({
   children,
-  initialNodes,
-  initialEdges,
+  initialNodes = [],
+  initialEdges = [],
   onChange,
-  // Controlled mode: usa nodes/edges externos ao invés de estado interno
-  nodes: controlledNodes,
-  edges: controlledEdges,
-  onNodesChange: externalOnNodesChange,
-  onEdgesChange: externalOnEdgesChange,
 }: {
-  children: React.ReactNode
+  children: ReactNode
   initialNodes?: Node[]
   initialEdges?: Edge[]
   onChange?: (data: { nodes: Node[]; edges: Edge[] }) => void
-  // Props para modo controlled (usado pelo workflow-editor)
-  nodes?: Node[]
-  edges?: Edge[]
-  onNodesChange?: (nodes: Node[]) => void
-  onEdgesChange?: (edges: Edge[]) => void
 }) {
-  // Modo controlled: usa props, Modo uncontrolled: usa estado interno
-  const isControlled = controlledNodes !== undefined
+  const [nodes, setNodes, handleNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, handleEdgesChange] = useEdgesState(initialEdges)
 
-  const [internalNodes, setInternalNodes] = useState(initialNodes ?? [])
-  const [internalEdges, setInternalEdges] = useState(initialEdges ?? [])
-
-  const nodes = isControlled ? controlledNodes : internalNodes
-  const edges = isControlled ? (controlledEdges ?? []) : internalEdges
-
-  // Notifica pai com debounce de 500ms (apenas modo uncontrolled)
   useEffect(() => {
-    if (isControlled) return
+    if (!onChange) return
 
-    const timer = setTimeout(() => {
-      onChange?.({ nodes: internalNodes, edges: internalEdges })
-    }, 500)
+    const timer = setTimeout(() => onChange({ nodes, edges }), 400)
     return () => clearTimeout(timer)
-  }, [internalNodes, internalEdges, onChange, isControlled])
+  }, [nodes, edges, onChange])
 
-  const updateNode = useCallback((nodeId: string, updates: any) => {
-    if (isControlled && externalOnNodesChange) {
-      // Modo controlled: chama callback externo
-      const updatedNodes = nodes.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, ...updates } }
-          : node
+  const updateNode = useCallback(
+    (nodeId: string, updates: NodeUpdateInput) => {
+      setNodes((prev) =>
+        prev.map((node) => {
+          if (node.id !== nodeId) return node
+
+          const previousData = node.data ?? {}
+          const resolvedUpdates = typeof updates === "function" ? updates(previousData) : updates
+
+          return {
+            ...node,
+            data: sanitizeNodeData({
+              ...previousData,
+              ...resolvedUpdates,
+            }),
+          }
+        })
       )
-      externalOnNodesChange(updatedNodes)
-    } else {
-      // Modo uncontrolled: atualiza estado interno
-      setInternalNodes((prevNodes) =>
-        prevNodes.map((node) =>
-          node.id === nodeId
-            ? { ...node, data: { ...node.data, ...updates } }
-            : node
-        )
-      )
-    }
-  }, [isControlled, externalOnNodesChange, nodes])
-
-  const addNode = useCallback((node: Node) => {
-    if (isControlled && externalOnNodesChange) {
-      externalOnNodesChange([...nodes, node])
-    } else {
-      setInternalNodes((prev) => [...prev, node])
-    }
-  }, [isControlled, externalOnNodesChange, nodes])
-
-  const removeNode = useCallback((nodeId: string) => {
-    if (isControlled && externalOnNodesChange && externalOnEdgesChange) {
-      externalOnNodesChange(nodes.filter((n) => n.id !== nodeId))
-      externalOnEdgesChange(edges.filter((e) => e.source !== nodeId && e.target !== nodeId))
-    } else {
-      setInternalNodes((prev) => prev.filter((n) => n.id !== nodeId))
-      setInternalEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId))
-    }
-  }, [isControlled, externalOnNodesChange, externalOnEdgesChange, nodes, edges])
-
-  const duplicateNode = useCallback((nodeId: string) => {
-    const nodeToDuplicate = nodes.find((n) => n.id === nodeId)
-    if (!nodeToDuplicate) return
-
-    const newNode = {
-      ...nodeToDuplicate,
-      id: `${nodeId}-copy-${Date.now()}`,
-      position: {
-        x: nodeToDuplicate.position.x + 50,
-        y: nodeToDuplicate.position.y + 50,
-      },
-      selected: false,
-    }
-
-    if (isControlled && externalOnNodesChange) {
-      externalOnNodesChange([...nodes, newNode])
-    } else {
-      setInternalNodes((prev) => [...prev, newNode])
-    }
-  }, [isControlled, externalOnNodesChange, nodes])
-
-  const updateEdge = useCallback((edgeId: string, updates: any) => {
-    if (isControlled && externalOnEdgesChange) {
-      const updatedEdges = edges.map((edge) =>
-        edge.id === edgeId ? { ...edge, ...updates } : edge
-      )
-      externalOnEdgesChange(updatedEdges)
-    } else {
-      setInternalEdges((prevEdges) =>
-        prevEdges.map((edge) =>
-          edge.id === edgeId ? { ...edge, ...updates } : edge
-        )
-      )
-    }
-  }, [isControlled, externalOnEdgesChange, edges])
-
-  return (
-    <WorkflowContext.Provider
-      value={{
-        nodes,
-        edges,
-        updateNode,
-        addNode,
-        removeNode,
-        duplicateNode,
-        updateEdge
-      }}
-    >
-      {children}
-    </WorkflowContext.Provider>
+    },
+    [setNodes]
   )
+
+  const addNode = useCallback(
+    (node: Node) => {
+      setNodes((prev) => [...prev, { ...node, data: sanitizeNodeData(node.data) }])
+    },
+    [setNodes]
+  )
+
+  const removeNode = useCallback(
+    (nodeId: string) => {
+      setNodes((prev) => prev.filter((node) => node.id !== nodeId))
+      setEdges((prev) => prev.filter((edge) => edge.source !== nodeId && edge.target !== nodeId))
+    },
+    [setNodes, setEdges]
+  )
+
+  const duplicateNode = useCallback(
+    (nodeId: string) => {
+      setNodes((prev) => {
+        const nodeToDuplicate = prev.find((node) => node.id === nodeId)
+        if (!nodeToDuplicate) {
+          return prev
+        }
+
+        const newNodeId = generateDeterministicId("node")
+        const clonedNode: Node = {
+          ...nodeToDuplicate,
+          id: newNodeId,
+          data: sanitizeNodeData(nodeToDuplicate.data),
+          position: {
+            x: nodeToDuplicate.position.x + 50,
+            y: nodeToDuplicate.position.y + 50,
+          },
+          selected: false,
+        }
+
+        return [...prev, clonedNode]
+      })
+    },
+    [setNodes]
+  )
+
+  const updateEdge = useCallback(
+    (edgeId: string, updates: NodeUpdates) => {
+      setEdges((prev) => prev.map((edge) => (edge.id === edgeId ? { ...edge, ...updates } : edge)))
+    },
+    [setEdges]
+  )
+
+  const value: WorkflowContextType = {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onNodesChange: handleNodesChange,
+    onEdgesChange: handleEdgesChange,
+    updateNode,
+    addNode,
+    removeNode,
+    duplicateNode,
+    updateEdge,
+  }
+
+  return <WorkflowContext.Provider value={value}>{children}</WorkflowContext.Provider>
 }
 
 export function useWorkflow() {

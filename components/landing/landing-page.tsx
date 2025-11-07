@@ -198,7 +198,8 @@ const BrandGlyph = ({ iconKey, size = "md" }: { iconKey: BrandIconKey; size?: "s
   const iconSize = size === "sm" ? 44 : 56
 
   // Aumentar tamanho especificamente para logonova.png
-  const imageSize = asset?.src === "/logonova.png" ? iconSize + 16 : iconSize
+  const imageSize =
+    asset?.type === "image" && asset.src === "/logonova.png" ? iconSize + 16 : iconSize
 
   if (!asset) return null
 

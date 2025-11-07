@@ -202,6 +202,36 @@ import type { ApiResponse, User } from "@/types"
  * - GET /newsletter/list
  */
 
+/**
+ * Import API Dialog Component
+ *
+ * Permite importar contatos da API oficial (contatos, participantes de grupos e newsletters).
+ * Integra com os endpoints:
+ * - GET /user/contacts
+ * - GET /group/list
+ * - GET /newsletter/list
+ */
+
+/**
+ * Import API Dialog Component
+ *
+ * Permite importar contatos da API oficial (contatos, participantes de grupos e newsletters).
+ * Integra com os endpoints:
+ * - GET /user/contacts
+ * - GET /group/list
+ * - GET /newsletter/list
+ */
+
+/**
+ * Import API Dialog Component
+ *
+ * Permite importar contatos da API oficial (contatos, participantes de grupos e newsletters).
+ * Integra com os endpoints:
+ * - GET /user/contacts
+ * - GET /group/list
+ * - GET /newsletter/list
+ */
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -843,7 +873,8 @@ export function ImportApiDialog({ open, onOpenChange, onSuccess }: ImportApiDial
             const exists = response.data?.some((instance) => instance.id === prev)
             if (exists) return prev
           }
-          const preferred = response.data.find((instance) => instance.connected) ?? response.data[0]
+          const preferred =
+            response.data?.find((instance) => instance.connected) ?? response.data?.[0]
           return preferred?.id ?? ""
         })
       } else {
@@ -1183,7 +1214,12 @@ export function ImportApiDialog({ open, onOpenChange, onSuccess }: ImportApiDial
 
       const result = await importContactsAction({
         listName,
-        contacts: sanitizedContacts,
+        contacts: sanitizedContacts as Array<{
+          jid: string
+          name?: string
+          phone?: string
+          [key: string]: any
+        }>,
       })
 
       if (result.success) {
@@ -1254,7 +1290,7 @@ export function ImportApiDialog({ open, onOpenChange, onSuccess }: ImportApiDial
           <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
             <div className="space-y-6">
               <DialogHeader className="space-y-2 text-left">
-                <DialogTitle>Importar Contatos via API Oficial</DialogTitle>
+                <DialogTitle>Importar Contatos via API</DialogTitle>
                 <DialogDescription>
                   Selecione uma instância conectada para buscar contatos diretamente da API
                   ZuckZapGo. Você pode importar contatos individuais, participantes de grupos (com

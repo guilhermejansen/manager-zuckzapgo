@@ -1,15 +1,16 @@
+import { Activity, Clock4, MessageSquareText, Send, Share2, Webhook, Workflow } from "lucide-react"
+
 import {
+  type DelayNodeConfig,
+  type HttpRequestNodeConfig,
+  type InteractiveNodeConfig,
+  type MediaMessageNodeConfig,
+  type TextMessageNodeConfig,
   WORKFLOW_NODE_DEFINITIONS,
   type WorkflowNodeDefinition,
   type WorkflowNodeGroup,
   type WorkflowNodeType,
-  type TextMessageNodeConfig,
-  type MediaMessageNodeConfig,
-  type InteractiveNodeConfig,
-  type DelayNodeConfig,
-  type HttpRequestNodeConfig,
 } from "@/lib/workflow/definitions"
-import { Activity, Clock4, MessageSquareText, Send, Share2, Webhook, Workflow } from "lucide-react"
 
 export interface ClientWorkflowNodeDefinition<TConfig = any>
   extends WorkflowNodeDefinition<TConfig> {
@@ -26,63 +27,63 @@ export const NODE_DEFINITIONS: Record<WorkflowNodeType, ClientWorkflowNodeDefini
     ...WORKFLOW_NODE_DEFINITIONS["trigger.start"],
     icon: Workflow,
     theme: {
-      border: "from-emerald-500/80 to-emerald-800/60",
-      background: "bg-[#12352D]",
-      accent: "bg-emerald-500/20",
+      border: "from-green-400 to-green-600",
+      background: "bg-gradient-to-br from-green-900/40 to-green-800/30",
+      accent: "bg-green-500/30",
     },
   },
   "message.text": {
     ...WORKFLOW_NODE_DEFINITIONS["message.text"],
     icon: MessageSquareText,
     theme: {
-      border: "from-sky-500/80 to-indigo-800/60",
-      background: "bg-[#161F3A]",
-      accent: "bg-sky-500/20",
+      border: "from-blue-400 to-blue-600",
+      background: "bg-gradient-to-br from-blue-900/40 to-blue-800/30",
+      accent: "bg-blue-500/30",
     },
   },
   "message.media": {
     ...WORKFLOW_NODE_DEFINITIONS["message.media"],
     icon: Send,
     theme: {
-      border: "from-purple-500/80 to-purple-800/60",
-      background: "bg-[#22163B]",
-      accent: "bg-purple-500/20",
+      border: "from-purple-400 to-purple-600",
+      background: "bg-gradient-to-br from-purple-900/40 to-purple-800/30",
+      accent: "bg-purple-500/30",
     },
   },
   "message.interactive": {
     ...WORKFLOW_NODE_DEFINITIONS["message.interactive"],
     icon: Share2,
     theme: {
-      border: "from-amber-500/80 to-orange-800/60",
-      background: "bg-[#332617]",
-      accent: "bg-amber-500/20",
+      border: "from-orange-400 to-orange-600",
+      background: "bg-gradient-to-br from-orange-900/40 to-orange-800/30",
+      accent: "bg-orange-500/30",
     },
   },
   "control.delay": {
     ...WORKFLOW_NODE_DEFINITIONS["control.delay"],
     icon: Clock4,
     theme: {
-      border: "from-slate-500/80 to-slate-800/60",
-      background: "bg-[#1F242B]",
-      accent: "bg-slate-500/20",
+      border: "from-violet-400 to-violet-600",
+      background: "bg-gradient-to-br from-violet-900/40 to-violet-800/30",
+      accent: "bg-violet-500/30",
     },
   },
   "integration.http": {
     ...WORKFLOW_NODE_DEFINITIONS["integration.http"],
     icon: Webhook,
     theme: {
-      border: "from-violet-500/80 to-violet-800/60",
-      background: "bg-[#20163B]",
-      accent: "bg-violet-500/20",
+      border: "from-indigo-400 to-indigo-600",
+      background: "bg-gradient-to-br from-indigo-900/40 to-indigo-800/30",
+      accent: "bg-indigo-500/30",
     },
   },
   "control.end": {
     ...WORKFLOW_NODE_DEFINITIONS["control.end"],
     icon: Activity,
     theme: {
-      border: "from-rose-500/80 to-rose-800/60",
-      background: "bg-[#34161C]",
-      accent: "bg-rose-500/20",
+      border: "from-red-400 to-red-600",
+      background: "bg-gradient-to-br from-red-900/40 to-red-800/30",
+      accent: "bg-red-500/30",
     },
   },
 }

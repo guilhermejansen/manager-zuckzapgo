@@ -2,13 +2,14 @@
 
 import { memo, useCallback, useRef } from "react"
 
+import { Share2 } from "lucide-react"
 import type { NodeProps } from "reactflow"
-import { useWorkflow } from "@/contexts/campaign-workflow-context"
-import { generateDeterministicId } from "@/lib/id-generator"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useWorkflow } from "@/contexts/campaign-workflow-context"
+import { generateDeterministicId } from "@/lib/id-generator"
 import type { InteractiveNodeConfig } from "@/lib/workflow/definitions"
 
 import { InputMapper } from "../input-mapper"
@@ -93,11 +94,21 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
       {...props}
       data={{
         ...data,
+        label: "Mensagem Interativa",
+        description: "Botões ou lista de opções",
+        icon: Share2,
+        theme: {
+          border: "from-orange-400 to-orange-600",
+          background: "bg-gradient-to-br from-orange-900/40 to-orange-800/30",
+          accent: "bg-orange-500/30",
+        },
+        allowInput: true,
+        allowOutput: true,
         content: (
-          <div className="space-y-4 text-xs text-white/80">
+          <div className="space-y-4 text-xs text-card-foreground">
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor={`${id}-text`} className="text-white/80">
+                <Label htmlFor={`${id}-text`} className="text-card-foreground">
                   Prompt text
                 </Label>
                 <PlaceholderMenu
@@ -111,15 +122,17 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                 ref={promptRef}
                 id={`${id}-text`}
                 value={config.text}
-                onChange={(event) => updateNode(id, { config: { ...config, text: event.target.value } })}
-                className="bg-white/5 text-white"
+                onChange={(event) =>
+                  updateNode(id, { config: { ...config, text: event.target.value } })
+                }
+                className="bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                 disabled={data.readOnly}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor={`${id}-type`} className="text-white/80">
+                <Label htmlFor={`${id}-type`} className="text-card-foreground">
                   Interactive type
                 </Label>
                 <select
@@ -129,11 +142,12 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                     updateNode(id, {
                       config: {
                         ...config,
-                        interactiveType: event.target.value as InteractiveNodeConfig["interactiveType"],
-                      }
+                        interactiveType: event.target
+                          .value as InteractiveNodeConfig["interactiveType"],
+                      },
                     })
                   }
-                  className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
+                  className="h-10 w-full rounded-md border border-border bg-secondary/50 px-3 text-foreground"
                   disabled={data.readOnly}
                 >
                   <option value="buttons">Buttons</option>
@@ -141,7 +155,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor={`${id}-delay`} className="text-white/80">
+                <Label htmlFor={`${id}-delay`} className="text-card-foreground">
                   Delay (ms)
                 </Label>
                 <Input
@@ -151,9 +165,11 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                   step={100}
                   value={config.delayMs}
                   onChange={(event) =>
-                    updateNode(id, { config: { ...config, delayMs: Number(event.target.value) || 0 } })
+                    updateNode(id, {
+                      config: { ...config, delayMs: Number(event.target.value) || 0 },
+                    })
                   }
-                  className="bg-white/5 text-white"
+                  className="bg-secondary/50 text-foreground"
                   disabled={data.readOnly}
                 />
               </div>
@@ -161,7 +177,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
 
             {config.interactiveType === "list" ? (
               <div className="space-y-1">
-                <Label htmlFor={`${id}-list-button`} className="text-white/80">
+                <Label htmlFor={`${id}-list-button`} className="text-card-foreground">
                   List button label
                 </Label>
                 <Input
@@ -171,7 +187,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                     updateNode(id, { config: { ...config, listButtonText: event.target.value } })
                   }
                   placeholder="View options"
-                  className="bg-white/5 text-white"
+                  className="bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                   disabled={data.readOnly}
                 />
               </div>
@@ -179,29 +195,32 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white/80">Options</span>
+                <span className="text-xs font-semibold text-card-foreground">Options</span>
                 <Button variant="secondary" size="sm" onClick={addButton} disabled={data.readOnly}>
                   Add option
                 </Button>
               </div>
               <div className="space-y-2">
                 {config.buttons.map((button) => (
-                  <div key={button.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div
+                    key={button.id}
+                    className="rounded-xl border border-border bg-secondary/50 p-3"
+                  >
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-white/70">Label</Label>
+                        <Label className="text-muted-foreground">Label</Label>
                         <Input
                           value={button.label}
                           onChange={(event) =>
                             updateButton(button.id, { label: event.target.value })
                           }
-                          className="mt-1 bg-white/5 text-white"
+                          className="mt-1 bg-secondary/50 text-foreground"
                           disabled={data.readOnly}
                         />
                       </div>
                       <div>
                         <div className="flex items-center justify-between">
-                          <Label className="text-white/70">Value</Label>
+                          <Label className="text-muted-foreground">Value</Label>
                           <PlaceholderMenu
                             groups={data.placeholders ?? []}
                             onInsert={(placeholder) =>
@@ -216,7 +235,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                           onChange={(event) =>
                             updateButton(button.id, { value: event.target.value })
                           }
-                          className="mt-1 bg-white/5 text-white"
+                          className="mt-1 bg-secondary/50 text-foreground"
                           disabled={data.readOnly}
                         />
                       </div>
@@ -234,7 +253,7 @@ function InteractiveNode(props: NodeProps<InteractiveNodeData>) {
                   </div>
                 ))}
                 {config.buttons.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-white/10 bg-white/5 p-4 text-center text-xs text-white/50">
+                  <div className="rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-center text-xs text-muted-foreground">
                     No options yet. Add at least one.
                   </div>
                 ) : null}

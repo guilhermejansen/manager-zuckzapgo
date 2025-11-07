@@ -28,19 +28,24 @@ O sistema de campanhas permite criar fluxos automatizados de mensagens WhatsApp 
 
 ```
 components/campaign/
-├── workflow-editor.tsx          # Editor principal
-├── workflow-sidebar.tsx         # Sidebar com nós disponíveis
-├── workflow-definitions.ts      # Definições de tipos de nós
-├── workflow-types.ts           # TypeScript types
-└── nodes/
-    ├── base-node.tsx           # Componente base
-    ├── start-node.tsx          # Nó inicial
-    ├── text-message-node.tsx   # Mensagem de texto
-    ├── media-message-node.tsx  # Mensagem de mídia
-    ├── interactive-node.tsx    # Mensagem interativa
-    ├── delay-node.tsx          # Atraso/delay
-    ├── http-request-node.tsx   # Requisição HTTP
-    └── end-node.tsx            # Nó final
+├── workflow-editor-v2.tsx       # Editor principal (React Flow controlado)
+├── workflow-toolbar.tsx         # Toolbar + ações de fullscreen/export
+├── workflow-sidebar.tsx         # Drawer com catálogo de nós
+├── workflow-definitions.ts      # Metadados e config padrão dos nós
+├── workflow-types.ts            # Tipagens compartilhadas
+├── input-mapper.tsx             # UI para mapear dados entre nós
+├── placeholder-menu.tsx         # Menu de placeholders dinâmicos
+├── nodes/                       # Implementações individuais de nós
+│   ├── base-node.tsx            # Layout base + validações
+│   ├── start-node.tsx           # Nó inicial
+│   ├── text-message-node.tsx    # Mensagem de texto
+│   ├── media-message-node.tsx   # Mensagem de mídia
+│   ├── interactive-node.tsx     # Mensagem interativa
+│   ├── delay-node.tsx           # Delay/Jitter com inputs numéricos
+│   ├── http-request-node.tsx    # Requisição HTTP com headers/body
+│   └── end-node.tsx             # Nó final
+└── contexts/
+    └── campaign-workflow-context.tsx # WorkflowProvider (useNodesState/useEdgesState)
 ```
 
 ---
@@ -64,21 +69,29 @@ components/campaign/
 └────────┬────────┘
          │
          ▼
-┌─────────────────────────────────┐
-│  WorkflowEditor                 │
-│                                 │
-│  • ReactFlowProvider wrapper    │
-│  • Gerencia nodes e edges       │
-│  • Coordena interações          │
-│  • Callbacks estabilizados      │
-└────────┬────────────────────────┘
+┌───────────────────────────────────────┐
+│  WorkflowEditorV2                     │
+│                                       │
+│  • ReactFlowProvider wrapper          │
+│  • Instancia WorkflowProvider         │
+│  • Envia handlers estáveis para nodes │
+└────────┬──────────────────────────────┘
          │
-         ├──────────────────┬──────────────────┐
-         ▼                  ▼                  ▼
-┌─────────────────┐  ┌──────────────┐  ┌──────────────┐
-│  Node Types     │  │  Placeholders│  │  Available   │
-│  (memoizado)    │  │  System      │  │  Sources     │
-└─────────────────┘  └──────────────┘  └──────────────┘
+         ▼
+┌───────────────────────────────────────┐
+│  WorkflowProvider                     │
+│                                       │
+│  • useNodesState / useEdgesState      │
+│  • updateNode(nodeId, patch|fn)       │
+│  • Sanitiza dados (remove handlers)   │
+└────────┬──────────────────────────────┘
+         │
+         ▼
+┌─────────────────┬────────────────────┬──────────────────┐
+│ React Flow Core │ enrichNodeWithDef  │ Serialization    │
+│                 │ (memoizado)        │ (serialize/      │
+│                 │                    │  deserialize)    │
+└─────────────────┴────────────────────┴──────────────────┘
 ```
 
 ### Sistema de Placeholders
@@ -112,82 +125,84 @@ outputs: [
 
 ## 🎨 Editor de Workflow
 
-### Componente Principal: `WorkflowEditor`
+### Componente Principal: `WorkflowEditorV2`
 
-**Local**: `components/campaign/workflow-editor.tsx`
+**Local**: `components/campaign/workflow-editor-v2.tsx`
 
 #### Props Interface
 
 ```typescript
-interface WorkflowEditorProps {
-  initialNodes?: Node[]        // Nós iniciais
-  initialEdges?: Edge[]        // Conexões iniciais
-  onChange?: (workflow: WorkflowFormData) => void  // Callback de mudanças
-  readOnly?: boolean           // Modo somente leitura
+interface WorkflowEditorV2Props {
+  className?: string
+  onExitFullscreen?: () => void
+  onToggleFullscreen?: () => void
+  isFullscreen?: boolean
+  onChange?: (workflow: WorkflowFormData) => void
+  initialWorkflow?: WorkflowFormData
+  readOnly?: boolean
 }
 ```
 
-#### Hooks Principais
+#### Fluxo Interno
 
-##### 1. `useNodesState` e `useEdgesState`
+1. `WorkflowEditorV2` cria um `ReactFlowProvider`.
+2. No interior, o `WorkflowProvider` fornece estado controlado de nós/arestas com `useNodesState`/`useEdgesState`.
+3. `WorkflowEditorContent` consome o contexto via `useWorkflow()`:
+   ```typescript
+   const {
+     nodes,
+     edges,
+     setNodes,
+     setEdges,
+     onNodesChange,
+     onEdgesChange,
+     updateNode,
+     duplicateNode,
+     removeNode,
+   } = useWorkflow()
+   ```
+4. Mudanças são serializadas com `serializeWorkflow(nodes, edges)` e entregues ao formulário pai via `onChange` (debounce de 500 ms).
 
-Hooks do React Flow para gerenciar estado de nós e conexões:
+#### WorkflowProvider (`contexts/campaign-workflow-context.tsx`)
 
-```typescript
-const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-```
+- `updateNode(nodeId, patch)` aceita objeto ou função para merges incrementais:
+  ```typescript
+  updateNode(id, (current) => ({
+    config: {
+      ...(current?.config ?? {}),
+      delayMs: Number(value) || 0,
+    },
+  }))
+  ```
+- Sanitiza dados persistidos removendo `actions`, `onConfigChange` e `onInputsChange`.
+- `duplicateNode` gera IDs determinísticos (`generateDeterministicId("node")`) e reposiciona o clone com offset.
 
-##### 2. Callbacks Estabilizados
+#### Enriquecimento de Nós
 
-**IMPORTANTE**: Todos os callbacks usados em `nodeTypes` devem ser estabilizados com `useCallback`:
+- `NODE_TYPES`/`EDGE_TYPES` são constantes no escopo do módulo para evitar recriações.
+- `enrichNodeWithDefinition(node, handlers)` injeta:
+  - `data.actions.onDuplicate` / `onDelete`
+  - `data.onConfigChange(patch)` para merges imutáveis
+  - `data.onInputsChange(inputs)` para o `InputMapper`
+  - Metadados (`label`, `icon`, `theme`, etc.) vindos de `NODE_DEFINITIONS`.
+- Nodes com tipo desconhecido são logados e renderizados como vieram (sem perder dados).
 
-```typescript
-// ✅ CORRETO - Callbacks estabilizados
-const stableHandleInputsChange = useCallback(
-  (nodeId: string, next: WorkflowNodeInput[]) => handleInputsChange(nodeId, next),
-  [handleInputsChange]
-)
+#### Convenções para Componentes de Nó
 
-// ❌ ERRADO - Callback inline (causa re-renders infinitos)
-onInputsChange: (next) => handleInputsChange(props.id, next)
-```
+- Leia `const { config } = data` e encaminhe alterações com `data.onConfigChange?.({ campo: valor })`.
+- Para coleções:
+  ```typescript
+  data.onConfigChange?.({
+    headers: config.headers.map((row) =>
+      row.id === rowId ? { ...row, value: event.target.value } : row
+    ),
+  })
+  ```
+- `InputMapper` recebe `data.onInputsChange?.(inputsAtualizados)`.
+- Marque blocos interativos com `className="nodrag nopan"` e intercepte `onPointerDown`/`onWheel` para evitar que o canvas capture o evento.
+- Exportar todos os nodes com `export default memo(NodeComponent)` garante renderizações previsíveis.
 
-**Por quê?** Callbacks inline criam novas referências a cada render, quebrando a memoização de `nodeTypes` e causando loops infinitos.
-
-##### 3. useMemo para nodeTypes
-
-**CRÍTICO**: `nodeTypes` DEVE ser memoizado com TODAS as dependências:
-
-```typescript
-const nodeTypes = useMemo(() => {
-  return {
-    "trigger.start": (props) => <StartNode {...props} />,
-    // ... outros nós
-  }
-}, [
-  readOnly,                      // ✅ Estado que afeta comportamento
-  placeholderMap,               // ✅ Dados dinâmicos
-  availableSourcesMap,          // ✅ Dados dinâmicos
-  stableHandleInputsChange,     // ✅ Callbacks estabilizados
-  stableHandleNodeConfigChange, // ✅ Callbacks estabilizados
-  stableHandleExecuteNode,      // ✅ Callbacks estabilizados
-  stableHandleDuplicateNode,    // ✅ Callbacks estabilizados
-  stableHandleDeleteNode,       // ✅ Callbacks estabilizados
-  stableHandleToggleActive,     // ✅ Callbacks estabilizados
-])
-```
-
-**NUNCA faça**:
-```typescript
-// ❌ ERRADO - Dependências incompletas
-}, [readOnly])  // Faltam as outras dependências!
-
-// ❌ ERRADO - nodeTypes fora de useMemo
-const nodeTypes = {
-  "trigger.start": (props) => <StartNode {...props} />,
-}
-```
+> Referências: [useNodesState](https://reactflow.dev/learn/state/use-nodes-state), [Hooks React Flow](https://reactflow.dev/api-reference/hooks), [Custom Nodes](https://reactflow.dev/learn/customization/custom-nodes).
 
 ---
 
@@ -595,6 +610,23 @@ data={buildData(props, {
 ```
 
 **Resultado**: Props estáveis, sem re-renders desnecessários
+
+## 🧩 Arquitetura do Workflow Editor V2 (2025-02)
+
+- `WorkflowEditorV2` vive em `components/campaign/workflow-editor-v2.tsx` e depende do `WorkflowProvider` (`contexts/campaign-workflow-context.tsx`).
+- O `WorkflowProvider` controla `nodes` e `edges` via `useNodesState`/`useEdgesState` e expõe `updateNode(nodeId, patch)` que aceita objetos ou funções para merges incrementais.
+- Cada node é enriquecido por `enrichNodeWithDefinition`, que injeta handlers estáveis:
+  - `data.actions.onDuplicate` / `onDelete`
+  - `data.onConfigChange(patch)` para merges imutáveis do objeto `config`
+  - `data.onInputsChange(inputs)` para o `InputMapper`
+- Componentes de node DEVEM encaminhar mudanças usando esses handlers; atualizar `data` diretamente quebra a sincronização.
+- Todo bloco interativo precisa impedir propagação para o canvas: envolva inputs em wrappers com `className="nodrag nopan"` e chame `event.stopPropagation()` em `onPointerDown`/`onWheel`.
+- Para criar novos nodes:
+  1. Defina `config` padrão em `NODE_DEFINITIONS` e no switch `defaultConfigs` do drop handler.
+  2. No componente, leia `const { config } = data` e chame `data.onConfigChange?.({ campo: valor })`.
+  3. Se expuser inputs, garanta estilos consistentes (`bg-secondary/50`, etc.) e sem side-effects no render.
+
+> Referência oficial: [useNodesState](https://reactflow.dev/learn/state/use-nodes-state) e [Custom Nodes](https://reactflow.dev/learn/customization/custom-nodes).
 
 ---
 

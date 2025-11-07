@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useRef } from "react"
 
+import { Webhook } from "lucide-react"
 import type { NodeProps } from "reactflow"
 
 import { Button } from "@/components/ui/button"
@@ -116,18 +117,28 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
       {...props}
       data={{
         ...data,
+        label: "HTTP Request",
+        description: "Chamada HTTP externa",
+        icon: Webhook,
+        theme: {
+          border: "from-indigo-400 to-indigo-600",
+          background: "bg-gradient-to-br from-indigo-900/40 to-indigo-800/30",
+          accent: "bg-indigo-500/30",
+        },
+        allowInput: true,
+        allowOutput: true,
         content: (
-          <div className="space-y-4 text-xs text-white/80">
+          <div className="space-y-4 text-xs text-card-foreground">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor={`${id}-method`} className="text-white/80">
+                <Label htmlFor={`${id}-method`} className="text-card-foreground">
                   Method
                 </Label>
                 <select
                   id={`${id}-method`}
                   value={config.method}
                   onChange={(event) => data.onConfigChange?.({ method: event.target.value })}
-                  className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
+                  className="h-10 w-full rounded-md border border-border bg-secondary/50 px-3 text-foreground"
                   disabled={data.readOnly}
                 >
                   {["GET", "POST", "PUT", "PATCH", "DELETE"].map((method) => (
@@ -138,7 +149,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor={`${id}-auth`} className="text-white/80">
+                <Label htmlFor={`${id}-auth`} className="text-card-foreground">
                   Authentication
                 </Label>
                 <select
@@ -149,7 +160,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                       auth: event.target.value as HttpRequestNodeConfig["auth"],
                     })
                   }
-                  className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
+                  className="h-10 w-full rounded-md border border-border bg-secondary/50 px-3 text-foreground"
                   disabled={data.readOnly}
                 >
                   <option value="none">None</option>
@@ -162,7 +173,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
 
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor={`${id}-url`} className="text-white/80">
+                <Label htmlFor={`${id}-url`} className="text-card-foreground">
                   URL
                 </Label>
                 <PlaceholderMenu
@@ -178,7 +189,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                 value={config.url}
                 onChange={(event) => data.onConfigChange?.({ url: event.target.value })}
                 placeholder="https://api.example.com/resource"
-                className="bg-white/5 text-white"
+                className="bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                 disabled={data.readOnly}
               />
             </div>
@@ -190,8 +201,8 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                 <div key={sectionKey} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-white/80">{sectionLabel}</div>
-                      <div className="text-xs text-white/60">
+                      <div className="font-semibold text-card-foreground">{sectionLabel}</div>
+                      <div className="text-xs text-muted-foreground">
                         Define custom {sectionLabel.toLowerCase()}
                       </div>
                     </div>
@@ -208,7 +219,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                     {list.map((row, index) => (
                       <div
                         key={row.id || `${sectionKey}-${index}`}
-                        className="grid grid-cols-[auto,1fr,1fr,auto] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                        className="grid grid-cols-[auto,1fr,1fr,auto] items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2"
                       >
                         <Switch
                           checked={row.enabled}
@@ -223,12 +234,12 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                             row.id && appendToPair(sectionKey, row.id, { name: event.target.value })
                           }
                           placeholder="Name"
-                          className="bg-white/5 text-white"
+                          className="bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                           disabled={data.readOnly}
                         />
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-2xs uppercase tracking-wider text-white/40">
+                            <span className="text-2xs uppercase tracking-wider text-muted-foreground">
                               Value
                             </span>
                             <PlaceholderMenu
@@ -250,7 +261,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                               appendToPair(sectionKey, row.id, { value: event.target.value })
                             }
                             placeholder="Value"
-                            className="bg-white/5 text-white"
+                            className="bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                             disabled={data.readOnly}
                           />
                         </div>
@@ -258,7 +269,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                           size="icon"
                           variant="ghost"
                           onClick={() => row.id && handleRemoveRow(sectionKey, row.id)}
-                          className="h-8 w-8 text-white/70"
+                          className="h-8 w-8 text-muted-foreground"
                           disabled={data.readOnly}
                         >
                           ×
@@ -266,7 +277,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                       </div>
                     ))}
                     {list.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-white/10 bg-white/5 p-4 text-center text-xs text-white/50">
+                      <div className="rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-center text-xs text-muted-foreground">
                         No parameters defined
                       </div>
                     ) : null}
@@ -278,8 +289,10 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-white/80">Request body</div>
-                  <div className="text-xs text-white/60">Configurable for write operations</div>
+                  <div className="font-semibold text-card-foreground">Request body</div>
+                  <div className="text-xs text-muted-foreground">
+                    Configurable for write operations
+                  </div>
                 </div>
                 <Switch
                   checked={config.bodyEnabled}
@@ -291,7 +304,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
               {config.bodyEnabled ? (
                 <div className="space-y-2">
                   <div className="space-y-1">
-                    <Label htmlFor={`${id}-body-type`} className="text-white/80">
+                    <Label htmlFor={`${id}-body-type`} className="text-card-foreground">
                       Content type
                     </Label>
                     <select
@@ -303,7 +316,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                             .value as HttpRequestNodeConfig["bodyContentType"],
                         })
                       }
-                      className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
+                      className="h-10 w-full rounded-md border border-border bg-secondary/50 px-3 text-foreground"
                       disabled={data.readOnly}
                     >
                       <option value="json">JSON</option>
@@ -313,7 +326,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <Label htmlFor={`${id}-body`} className="text-white/80">
+                      <Label htmlFor={`${id}-body`} className="text-card-foreground">
                         Body payload
                       </Label>
                       <PlaceholderMenu
@@ -328,7 +341,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
                       value={config.body}
                       onChange={(event) => data.onConfigChange?.({ body: event.target.value })}
                       placeholder='{"key": "value"}'
-                      className="min-h-[140px] resize-none bg-white/5 font-mono text-white"
+                      className="min-h-[140px] resize-none bg-secondary/50 font-mono text-foreground placeholder:text-muted-foreground"
                       disabled={data.readOnly}
                     />
                   </div>

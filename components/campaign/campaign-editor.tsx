@@ -51,6 +51,13 @@ import type { WorkflowFormData } from "@/lib/validations"
  * para melhor performance e compatibilidade SSR.
  */
 
+/**
+ * Campaign Editor Client Component
+ *
+ * Componente cliente para edição de campanhas, separado do Server Component
+ * para melhor performance e compatibilidade SSR.
+ */
+
 // Dynamic import do WorkflowEditorV2 para evitar SSR do ReactFlow
 const WorkflowEditorV2 = dynamic(
   () => import("@/components/campaign/workflow-editor-v2").then((mod) => mod.WorkflowEditorV2),
@@ -490,10 +497,7 @@ export function CampaignEditor({ campaignId, initialData }: CampaignEditorProps)
               <CardDescription>Gerencie as instâncias que executarão esta campanha</CardDescription>
             </CardHeader>
             <CardContent>
-              <InstanceManager
-                campaignId={initialData.id}
-                readonly={initialData.status !== "DRAFT"}
-              />
+              <InstanceManager campaignId={campaignId} readonly={initialData.status !== "DRAFT"} />
             </CardContent>
           </Card>
         </TabsContent>

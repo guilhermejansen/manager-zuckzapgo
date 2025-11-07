@@ -2,12 +2,13 @@
 
 import { memo, useCallback, useRef } from "react"
 
+import { Send } from "lucide-react"
 import type { NodeProps } from "reactflow"
-import { useWorkflow } from "@/contexts/campaign-workflow-context"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useWorkflow } from "@/contexts/campaign-workflow-context"
 import type { MediaMessageNodeConfig } from "@/lib/workflow/definitions"
 
 import { InputMapper } from "../input-mapper"
@@ -39,7 +40,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
           config: {
             ...config,
             [key]: `${current ?? ""}${value}`,
-          }
+          },
         })
         return
       }
@@ -52,7 +53,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
         config: {
           ...config,
           [key]: nextValue,
-        }
+        },
       })
 
       requestAnimationFrame(() => {
@@ -86,11 +87,21 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
       {...props}
       data={{
         ...data,
+        label: "Mensagem de Mídia",
+        description: "Envio de imagem, vídeo, documento",
+        icon: Send,
+        theme: {
+          border: "from-purple-400 to-purple-600",
+          background: "bg-gradient-to-br from-purple-900/40 to-purple-800/30",
+          accent: "bg-purple-500/30",
+        },
+        allowInput: true,
+        allowOutput: true,
         content: (
-          <div className="space-y-4 text-xs text-white/80">
+          <div className="space-y-4 text-xs text-card-foreground">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor={`${id}-type`} className="text-white/80">
+                <Label htmlFor={`${id}-type`} className="text-card-foreground">
                   Media type
                 </Label>
                 <select
@@ -101,10 +112,10 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                       config: {
                         ...config,
                         mediaType: event.target.value as MediaMessageNodeConfig["mediaType"],
-                      }
+                      },
                     })
                   }
-                  className="h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
+                  className="h-10 w-full rounded-md border border-border bg-secondary/50 px-3 text-foreground"
                   disabled={data.readOnly}
                 >
                   <option value="image">Image</option>
@@ -114,7 +125,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor={`${id}-delay`} className="text-white/80">
+                <Label htmlFor={`${id}-delay`} className="text-card-foreground">
                   Delay (ms)
                 </Label>
                 <Input
@@ -125,10 +136,10 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                   value={config.delayMs}
                   onChange={(event) =>
                     updateNode(id, {
-                      config: { ...config, delayMs: Number(event.target.value) || 0 }
+                      config: { ...config, delayMs: Number(event.target.value) || 0 },
                     })
                   }
-                  className="bg-white/5 text-white"
+                  className="bg-secondary/50 text-foreground"
                   disabled={data.readOnly}
                 />
               </div>
@@ -136,7 +147,7 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
 
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor={`${id}-url`} className="text-white/80">
+                <Label htmlFor={`${id}-url`} className="text-card-foreground">
                   Media URL
                 </Label>
                 <PlaceholderMenu
@@ -150,16 +161,18 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                 ref={urlRef}
                 id={`${id}-url`}
                 value={config.mediaUrl}
-                onChange={(event) => updateNode(id, { config: { ...config, mediaUrl: event.target.value } })}
+                onChange={(event) =>
+                  updateNode(id, { config: { ...config, mediaUrl: event.target.value } })
+                }
                 placeholder="https://"
-                className="bg-white/5 text-white"
+                className="bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                 disabled={data.readOnly}
               />
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor={`${id}-caption`} className="text-white/80">
+                <Label htmlFor={`${id}-caption`} className="text-card-foreground">
                   Caption
                 </Label>
                 <PlaceholderMenu
@@ -173,9 +186,11 @@ function MediaMessageNode(props: NodeProps<MediaMessageNodeData>) {
                 ref={captionRef}
                 id={`${id}-caption`}
                 value={config.caption ?? ""}
-                onChange={(event) => updateNode(id, { config: { ...config, caption: event.target.value } })}
+                onChange={(event) =>
+                  updateNode(id, { config: { ...config, caption: event.target.value } })
+                }
                 placeholder="Message caption, supports placeholders"
-                className="min-h-[80px] resize-none bg-white/5 text-white"
+                className="min-h-[80px] resize-none bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                 disabled={data.readOnly}
               />
             </div>

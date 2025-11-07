@@ -74,7 +74,7 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor={`${id}-message`} className="text-xs text-white/80">
+                <Label htmlFor={`${id}-message`} className="text-xs text-card-foreground">
                   Message
                 </Label>
                 <PlaceholderMenu
@@ -92,15 +92,17 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
                   updateNode(id, { config: { ...config, message: event.target.value } })
                 }
                 placeholder="Use placeholders como {{contact.name}}"
-                className="min-h-[120px] resize-none bg-white/5 text-white"
+                className="min-h-[120px] resize-none bg-secondary/50 text-foreground placeholder:text-muted-foreground"
                 disabled={data.readOnly}
               />
-              <div className="text-2xs text-white/60">{config.message.length} characters</div>
+              <div className="text-2xs text-muted-foreground">
+                {config.message.length} characters
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="space-y-1">
-                <Label htmlFor={`${id}-delay`} className="text-white/80">
+                <Label htmlFor={`${id}-delay`} className="text-card-foreground">
                   Delay after send (ms)
                 </Label>
                 <Input
@@ -114,12 +116,12 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
                       config: { ...config, delayMs: Number(event.target.value) || 0 },
                     })
                   }
-                  className="bg-white/5 text-white"
+                  className="bg-secondary/50 text-foreground"
                   disabled={data.readOnly}
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor={`${id}-presence`} className="text-white/80">
+                <Label htmlFor={`${id}-presence`} className="text-card-foreground">
                   Presence simulation (ms)
                 </Label>
                 <Input
@@ -133,16 +135,16 @@ function TextMessageNode(props: NodeProps<TextMessageNodeData>) {
                       config: { ...config, presenceSimulation: Number(event.target.value) || 0 },
                     })
                   }
-                  className="bg-white/5 text-white"
+                  className="bg-secondary/50 text-foreground"
                   disabled={data.readOnly}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80">
+            <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2 text-xs text-card-foreground">
               <div>
                 <div className="font-medium">Link preview</div>
-                <div className="text-white/60">Enable preview snippets for URLs</div>
+                <div className="text-muted-foreground">Enable preview snippets for URLs</div>
               </div>
               <Switch
                 checked={config.linkPreview}
