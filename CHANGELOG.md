@@ -5,6 +5,37 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.5.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.4.1...v1.5.0) (2025-11-05)
+
+### ✨ Novas Funcionalidades
+
+* **actions:** implementar server actions completas para gerenciamento de campanhas (0cb603eeaadded293fabd44a1ff39e9308cb86bd)
+* **components:** adicionar componentes reutilizáveis para o sistema de campanhas (09c2f8d37b809b2ecfbbdfda6606de28f771fbc2)
+* **config:** configurar Next.js para standalone output e server actions (0dd5471477adb15fa618cd0c5c551dcaab286cdd)
+* **contacts:** implementar sistema completo de adição e validação de contatos (328f98825b676a0094be93d17e38649f00163b3d)
+* **database:** adicionar schema completo do sistema de campanhas (6eb889edc904d580ee50fe717c00336c17843f19)
+* **docker:** configurar docker-compose para produção com workers separados (a925896926a6d3768e646093217d9c867c8513c5)
+* **instances:** implementar server actions para gerenciamento de instâncias WhatsApp (64c866ec03938d99f5728a35c4437b95b78c404c)
+* **landing:** criar landing page profissional para o sistema (d529e767dc4c83eb2c582e11ad97ee76a2a60357)
+* **pages:** implementar páginas completas de gerenciamento de campanhas (3b4b07f70dc7c7ef644c27c7bb1e88da055d5812)
+* **utils:** adicionar componentes avançados e utilitários para campanhas (fc7fac5a15796bd424a7c8801d23ddfaf91192db)
+* **validation:** adicionar schemas Zod completos para campanhas e contatos (7f15716301e6de8ce24fa4945acc88f87ee3cdfc)
+
+### 🐛 Correções de Bugs
+
+* **workflow:** corrigir infinite loop e nodeTypes recreation no workflow editor (3b0e621d564027a2a91b7fabf5ba59ed5ffcd024)
+
+### 📚 Documentação
+
+* adicionar checklist de validação de implementação (48e9962712b66c09fc2be4fe3193d06b5e3b82e4)
+* adicionar documentação completa do projeto e relatórios de status (b02b090edf1c1fe1dc4ad1e74f817daa508d9e41)
+
+### ♻️ Refatorações
+
+* **hooks:** remover arquivo duplicado use-sidebar.ts (d4dacbb954dd2a8d0ed79049b859235854dd3fd6)
+* **layout:** melhorar layout admin com sidebar responsivo e theme toggle (f9b5037e403b76115b128cfb81a0527eee2f7c37)
+* **nodes:** padronizar implementação de todos os custom nodes do workflow (6645f9d01219cda1c2e0aeecb82b2fcabfb130b7)
+
 ## [1.4.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.4.0...v1.4.1) (2025-11-03)
 
 ### 🐛 Correções de Bugs
