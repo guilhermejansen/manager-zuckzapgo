@@ -29,7 +29,7 @@ acesso:
 
 Stack Tecnológica:
 
-- Next.js 15 (App Router, SSR, Server Components)
+- Next.js 16 (App Router, SSR, Server Components)
 - React 19
 - TypeScript
 - Tailwind CSS v4 (tema neutral)

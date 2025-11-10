@@ -23,6 +23,8 @@ export interface LicenseInfoResponse {
   features: string[]
   support_email: string
   documentation_url: string
+  users_count: number
+  connected_users_count: number
 }
 
 export interface LicenseError {
