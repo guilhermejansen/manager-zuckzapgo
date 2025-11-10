@@ -10,6 +10,12 @@
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS deps
 
+# Harden npm network settings to reduce transient registry failures
+ENV NPM_CONFIG_FETCH_RETRIES=5 \
+    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
+    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 \
+    NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+
 # Install libc6-compat for compatibility
 RUN apk add --no-cache libc6-compat
 
@@ -27,6 +33,12 @@ RUN npm ci --only=production --ignore-scripts && \
 # Build the application with all dependencies
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS builder
+
+# Reuse resilient npm settings during the full build
+ENV NPM_CONFIG_FETCH_RETRIES=5 \
+    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
+    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 \
+    NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 
 # Install build dependencies
 RUN apk add --no-cache libc6-compat python3 make g++
