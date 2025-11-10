@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.5.1...v1.6.0) (2025-11-10)
+
+### ✨ Novas Funcionalidades
+
+* **license:** adicionar campos no type (acd18699df474b16ebbc448b6e1c390c57143f60)
+
 ## [1.5.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.5.0...v1.5.1) (2025-11-07)
 
 ### 🐛 Correções de Bugs
