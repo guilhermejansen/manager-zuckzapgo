@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.0...v1.6.1) (2025-11-10)
+
+### 🐛 Correções de Bugs
+
+* **docker:** ajuste do dockerfile para word-wrap@1.2.5 (7c104ba7079f84d7938ffa10757e555e1457fa96)
+
 ## [1.6.0](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.5.1...v1.6.0) (2025-11-10)
 
 ### ✨ Novas Funcionalidades
