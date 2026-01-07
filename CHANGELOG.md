@@ -5,6 +5,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.2](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.1...v1.6.2) (2026-01-07)
+
+### 🐛 Correções de Bugs
+
+* **build:** add not-found page and update baseline-browser-mapping (3badaa609be48a005dde39b2fba7e4e2ea853233)
+* **build:** resolve typescript errors for bun compatibility (a74c04c2b6f64c9e89a8dcb61c8136f82ae943ff)
+* **ui:** add mounted state to Toaster for SSR compatibility (ed83c98f521e3c4642a6fbd5b6e7ed7c34028b9b)
+* **ui:** simplify global-error for prerender compatibility (ab90fe63642f645592f8377c10ea48a378ca0a58)
+
+### ♻️ Refatorações
+
+* **excel:** migrate from xlsx to exceljs (169e676d2306c5ec6b7ee9f428acb645179e13d8)
+
 ## [1.6.1](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.0...v1.6.1) (2025-11-10)
 
 ### 🐛 Correções de Bugs
