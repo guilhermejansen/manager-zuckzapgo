@@ -96,7 +96,7 @@ function convertToCSV(data: any[]): string {
 /**
  * Converte dados para Excel buffer usando exceljs
  */
-async function convertToExcel(data: any[]): Promise<Buffer> {
+async function convertToExcel(data: any[]): Promise<Uint8Array> {
 	const workbook = new ExcelJS.Workbook();
 	const worksheet = workbook.addWorksheet("Campaigns");
 
@@ -112,7 +112,7 @@ async function convertToExcel(data: any[]): Promise<Buffer> {
 	}
 
 	const buffer = await workbook.xlsx.writeBuffer();
-	return Buffer.from(buffer);
+	return new Uint8Array(buffer);
 }
 
 // ============================================================================
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
 
 			case "excel": {
 				const excel = await convertToExcel(data);
-				return new NextResponse(excel, {
+				return new Response(excel.buffer as ArrayBuffer, {
 					headers: {
 						"Content-Type":
 							"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
 
 			case "excel": {
 				const excel = await convertToExcel(data);
-				return new NextResponse(excel, {
+				return new Response(excel.buffer as ArrayBuffer, {
 					headers: {
 						"Content-Type":
 							"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

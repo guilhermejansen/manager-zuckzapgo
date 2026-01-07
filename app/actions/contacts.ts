@@ -683,7 +683,8 @@ export async function importContactsExcelAction(
 
     // Parse Excel with exceljs
     const workbook = new ExcelJS.Workbook()
-    await workbook.xlsx.load(Buffer.from(fileBuffer))
+    // ExcelJS aceita ArrayBuffer diretamente
+    await workbook.xlsx.load(fileBuffer as unknown as ArrayBuffer)
 
     const sheetName = options.sheetName || workbook.worksheets[0]?.name
     const worksheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0]

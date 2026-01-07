@@ -89,7 +89,7 @@ export function StatusDistribution({ data }: StatusDistributionProps) {
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number) => value.toLocaleString()} />
+            <Tooltip formatter={(value) => (value as number).toLocaleString()} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>

@@ -6,11 +6,11 @@
 
 "use client"
 
-import { useCallback, useState } from "react"
+import ExcelJS from "exceljs"
 
 import { AlertCircle, CheckCircle, FileSpreadsheet, Upload } from "lucide-react"
+import { useCallback, useState } from "react"
 import { toast } from "sonner"
-import * as XLSX from "xlsx"
 
 import { importContactsAction } from "@/app/actions/contacts"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -43,24 +43,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { logger } from "@/lib/logger"
-
-/**
- * Import Excel Dialog Component
- *
- * Dialog para importação de contatos via arquivo Excel (.xlsx) com preview.
- */
-
-/**
- * Import Excel Dialog Component
- *
- * Dialog para importação de contatos via arquivo Excel (.xlsx) com preview.
- */
-
-/**
- * Import Excel Dialog Component
- *
- * Dialog para importação de contatos via arquivo Excel (.xlsx) com preview.
- */
 
 // ============================================================================
 // TYPES
@@ -111,6 +93,42 @@ function validatePhone(phone: string): boolean {
   return phoneRegex.test(phone.replace(/\D/g, ""))
 }
 
+/**
+ * Converte worksheet do ExcelJS para array de objetos JSON
+ */
+function worksheetToJson(worksheet: ExcelJS.Worksheet | undefined): ExcelRow[] {
+  if (!worksheet) return []
+
+  const json: ExcelRow[] = []
+  const headers: string[] = []
+
+  worksheet.eachRow((row, rowNumber) => {
+    const rowValues = row.values as any[]
+    // ExcelJS row.values começa do índice 1
+    const values = rowValues.slice(1)
+
+    if (rowNumber === 1) {
+      // Primeira linha são os cabeçalhos
+      values.forEach((val) => {
+        headers.push(String(val || "").toLowerCase().trim())
+      })
+    } else {
+      // Linhas de dados
+      const obj: ExcelRow = { jid: "" }
+      headers.forEach((header, index) => {
+        if (values[index] !== undefined && values[index] !== null) {
+          obj[header] = values[index]
+        }
+      })
+      if (obj.jid || Object.keys(obj).length > 1) {
+        json.push(obj)
+      }
+    }
+  })
+
+  return json
+}
+
 function validateExcelData(data: any[]): ValidationResult {
   const valid: ExcelRow[] = []
   const invalid: { row: ExcelRow; errors: string[] }[] = []
@@ -153,69 +171,66 @@ export function ImportExcelDialog({ open, onOpenChange, onSuccess }: ImportExcel
   const [sheetNames, setSheetNames] = useState<string[]>([])
   const [selectedSheet, setSelectedSheet] = useState<string>("")
 
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     setFileName(file.name)
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: "array" })
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const workbook = new ExcelJS.Workbook()
+      await workbook.xlsx.load(arrayBuffer)
 
-        // Listar todas as planilhas
-        const sheets = workbook.SheetNames
-        setSheetNames(sheets)
+      // Listar todas as planilhas
+      const sheets = workbook.worksheets.map((ws) => ws.name)
+      setSheetNames(sheets)
 
-        // Selecionar a primeira planilha por padrão
-        const firstSheet = sheets[0]
-        setSelectedSheet(firstSheet)
+      // Selecionar a primeira planilha por padrão
+      const firstSheet = sheets[0]
+      setSelectedSheet(firstSheet)
 
-        // Processar a primeira planilha
-        const worksheet = workbook.Sheets[firstSheet]
-        const json = XLSX.utils.sheet_to_json(worksheet) as ExcelRow[]
+      // Processar a primeira planilha
+      const worksheet = workbook.getWorksheet(firstSheet)
+      const json = worksheetToJson(worksheet)
 
-        setExcelData(json)
-        const validationResult = validateExcelData(json)
-        setValidation(validationResult)
+      setExcelData(json)
+      const validationResult = validateExcelData(json)
+      setValidation(validationResult)
 
-        logger.debug("Excel parsed", null, {
-          component: "ImportExcelDialog",
-          action: "handleFileChange",
-          metadata: {
-            sheetCount: sheets.length,
-            totalRows: json.length,
-            validRows: validationResult.valid.length,
-            invalidRows: validationResult.invalid.length,
-          },
-        })
+      logger.debug("Excel parsed", null, {
+        component: "ImportExcelDialog",
+        action: "handleFileChange",
+        metadata: {
+          sheetCount: sheets.length,
+          totalRows: json.length,
+          validRows: validationResult.valid.length,
+          invalidRows: validationResult.invalid.length,
+        },
+      })
 
-        if (validationResult.valid.length === 0) {
-          toast.error("Nenhum contato válido encontrado no arquivo")
-        } else {
-          toast.success(
-            `${validationResult.valid.length} contatos válidos encontrados${
-              validationResult.invalid.length > 0
-                ? ` (${validationResult.invalid.length} inválidos)`
-                : ""
-            }`
-          )
-        }
-      } catch (error) {
-        logger.error("Excel parse error", error instanceof Error ? error : undefined, {
-          component: "ImportExcelDialog",
-          action: "handleFileChange",
-        })
-        toast.error("Erro ao processar arquivo Excel")
+      if (validationResult.valid.length === 0) {
+        toast.error("Nenhum contato válido encontrado no arquivo")
+      } else {
+        toast.success(
+          `${validationResult.valid.length} contatos válidos encontrados${
+            validationResult.invalid.length > 0
+              ? ` (${validationResult.invalid.length} inválidos)`
+              : ""
+          }`
+        )
       }
+    } catch (error) {
+      logger.error("Excel parse error", error instanceof Error ? error : undefined, {
+        component: "ImportExcelDialog",
+        action: "handleFileChange",
+      })
+      toast.error("Erro ao processar arquivo Excel")
     }
-    reader.readAsArrayBuffer(file)
   }, [])
 
   const handleSheetChange = useCallback(
-    (sheetName: string) => {
+    async (sheetName: string) => {
       if (!fileName) return
 
       setSelectedSheet(sheetName)
@@ -225,32 +240,29 @@ export function ImportExcelDialog({ open, onOpenChange, onSuccess }: ImportExcel
       const file = fileInput?.files?.[0]
       if (!file) return
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer)
-          const workbook = XLSX.read(data, { type: "array" })
-          const worksheet = workbook.Sheets[sheetName]
-          const json = XLSX.utils.sheet_to_json(worksheet) as ExcelRow[]
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(arrayBuffer)
+        const worksheet = workbook.getWorksheet(sheetName)
+        const json = worksheetToJson(worksheet)
 
-          setExcelData(json)
-          const validationResult = validateExcelData(json)
-          setValidation(validationResult)
+        setExcelData(json)
+        const validationResult = validateExcelData(json)
+        setValidation(validationResult)
 
-          logger.debug("Sheet changed", null, {
-            component: "ImportExcelDialog",
-            action: "handleSheetChange",
-            metadata: { sheetName, rowCount: json.length },
-          })
-        } catch (error) {
-          logger.error("Sheet change error", error instanceof Error ? error : undefined, {
-            component: "ImportExcelDialog",
-            action: "handleSheetChange",
-          })
-          toast.error("Erro ao processar planilha")
-        }
+        logger.debug("Sheet changed", null, {
+          component: "ImportExcelDialog",
+          action: "handleSheetChange",
+          metadata: { sheetName, rowCount: json.length },
+        })
+      } catch (error) {
+        logger.error("Sheet change error", error instanceof Error ? error : undefined, {
+          component: "ImportExcelDialog",
+          action: "handleSheetChange",
+        })
+        toast.error("Erro ao processar planilha")
       }
-      reader.readAsArrayBuffer(file)
     },
     [fileName]
   )

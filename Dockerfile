@@ -1,6 +1,6 @@
 # ==============================================================================
 # Multi-Stage Dockerfile for Next.js 16 with Bun and Prisma
-# Optimized for production deployment
+# Optimized for production deployment without source code exposure
 # Supports: linux/amd64, linux/arm64
 # ==============================================================================
 
@@ -15,12 +15,15 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files and Prisma schema (required for postinstall prisma generate)
+# Copy package files and lockfile
 COPY package.json bun.lock* ./
+
+# Copy Prisma schema (required for prisma generate)
 COPY prisma ./prisma/
 
-# Install production dependencies only
-RUN bun install --frozen-lockfile --production
+# Install production dependencies (ignore postinstall, run prisma generate manually)
+RUN bun install --frozen-lockfile --production --ignore-scripts && \
+    bunx prisma generate
 
 # ------------------------------------------------------------------------------
 # Stage 2: Builder
@@ -33,12 +36,15 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files and Prisma schema (required for postinstall prisma generate)
+# Copy package files and lockfile
 COPY package.json bun.lock* ./
+
+# Copy Prisma schema (required for prisma generate)
 COPY prisma ./prisma/
 
-# Install all dependencies (including devDependencies)
-RUN bun install --frozen-lockfile
+# Install all dependencies (ignore postinstall, run prisma generate manually)
+RUN bun install --frozen-lockfile --ignore-scripts && \
+    bunx prisma generate
 
 # Copy source code
 COPY . .
@@ -51,7 +57,7 @@ RUN bun run build
 
 # ------------------------------------------------------------------------------
 # Stage 3: Runner
-# Final production image with minimal footprint
+# Final production image with minimal footprint using Bun runtime
 # ------------------------------------------------------------------------------
 FROM oven/bun:1.3-alpine AS runner
 
@@ -92,7 +98,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 # Copy public folder
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 
-# Copy lib folder (workers source - Bun runs TS natively)
+# Copy worker source files (Bun runs TypeScript natively)
 COPY --from=builder --chown=nodejs:nodejs /app/lib ./lib
 
 # Copy package.json and bun.lock for metadata
@@ -103,7 +109,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/bun.lock* ./
 COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Copy healthcheck script (TypeScript - Bun runs natively)
+# Copy healthcheck script
 COPY --chown=nodejs:nodejs healthcheck.ts ./
 
 # Switch to non-root user
@@ -123,5 +129,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Use entrypoint script
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-# Default command - Bun running Next.js server
+# Default command - run Next.js with Bun
 CMD ["bun", "--bun", "server.js"]
