@@ -80,7 +80,8 @@ is_worker_mode() {
 
 # Main entrypoint logic
 main() {
-    log_info "Starting Manager ZuckZapGo initialization..."
+    log_info "Manager ZuckZapGo - Starting with Bun Runtime"
+    log_info "Bun version: $(bun --version)"
 
     # Detect mode
     SKIP_MIGRATIONS=false
@@ -131,19 +132,11 @@ main() {
         log_info "⏭️  Skipping Prisma migrations (worker mode)"
     else
         log_info "Running Prisma migrations..."
-        if npx prisma migrate deploy; then
+        if bunx --bun prisma migrate deploy; then
             log_info "Migrations completed successfully"
         else
             log_error "Migration failed"
             exit 1
-        fi
-
-        # Generate Prisma Client (in case it's needed)
-        log_info "Ensuring Prisma Client is generated..."
-        if npx prisma generate; then
-            log_info "Prisma Client generated successfully"
-        else
-            log_warn "Prisma Client generation failed, but continuing..."
         fi
     fi
 

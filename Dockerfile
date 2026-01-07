@@ -1,6 +1,6 @@
 # ==============================================================================
-# Multi-Stage Dockerfile for Next.js 16 with Prisma
-# Optimized for production deployment without source code exposure
+# Multi-Stage Dockerfile for Next.js 16 with Bun and Prisma
+# Optimized for production deployment
 # Supports: linux/amd64, linux/arm64
 # ==============================================================================
 
@@ -8,55 +8,37 @@
 # Stage 1: Dependencies
 # Install only production dependencies for smaller final image
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS deps
-
-# Harden npm network settings to reduce transient registry failures
-ENV NPM_CONFIG_FETCH_RETRIES=5 \
-    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
-    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 \
-    NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+FROM oven/bun:1.3-alpine AS deps
 
 # Install libc6-compat for compatibility
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy package files and Prisma schema (required for postinstall prisma generate)
+COPY package.json bun.lock* ./
+COPY prisma ./prisma/
 
 # Install production dependencies only
-RUN npm ci --only=production --ignore-scripts && \
-    npm cache clean --force
+RUN bun install --frozen-lockfile --production
 
 # ------------------------------------------------------------------------------
 # Stage 2: Builder
 # Build the application with all dependencies
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS builder
-
-# Reuse resilient npm settings during the full build
-ENV NPM_CONFIG_FETCH_RETRIES=5 \
-    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
-    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 \
-    NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+FROM oven/bun:1.3-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
-
-# Install all dependencies (including devDependencies)
-RUN npm ci --ignore-scripts && \
-    npm cache clean --force
-
-# Copy Prisma schema and migrations
+# Copy package files and Prisma schema (required for postinstall prisma generate)
+COPY package.json bun.lock* ./
 COPY prisma ./prisma/
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Install all dependencies (including devDependencies)
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -64,16 +46,14 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN npm run build
-
-# Build worker bundle (postbuild runs automatically, but ensure artifacts exist)
-RUN test -d dist/workers
+# Build Next.js application
+RUN bun run build
 
 # ------------------------------------------------------------------------------
 # Stage 3: Runner
 # Final production image with minimal footprint
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM oven/bun:1.3-alpine AS runner
 
 # Install runtime dependencies
 RUN apk add --no-cache \
@@ -104,7 +84,6 @@ COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 
 # Copy Next.js standalone build output
-# This includes the compiled server and minimal dependencies
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
 
 # Copy static files
@@ -113,21 +92,19 @@ COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 # Copy public folder
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 
-# Copy compiled worker bundle
-COPY --from=builder --chown=nodejs:nodejs /app/dist/workers ./dist/workers
+# Copy lib folder (workers source - Bun runs TS natively)
+COPY --from=builder --chown=nodejs:nodejs /app/lib ./lib
 
-# Remove TypeScript build info artifacts
-RUN rm -f dist/workers/tsconfig.workers.tsbuildinfo
-
-# Copy package.json for metadata
+# Copy package.json and bun.lock for metadata
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nodejs:nodejs /app/bun.lock* ./
 
 # Copy entrypoint script
 COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Copy healthcheck script
-COPY --chown=nodejs:nodejs healthcheck.js ./
+# Copy healthcheck script (TypeScript - Bun runs natively)
+COPY --chown=nodejs:nodejs healthcheck.ts ./
 
 # Switch to non-root user
 USER nodejs
@@ -139,12 +116,12 @@ EXPOSE 3000
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Health check
+# Health check using Bun
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node healthcheck.js || exit 1
+  CMD bun run healthcheck.ts || exit 1
 
 # Use entrypoint script
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-# Default command (can be overridden for workers)
-CMD ["node", "server.js"]
+# Default command - Bun running Next.js server
+CMD ["bun", "--bun", "server.js"]
