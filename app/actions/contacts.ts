@@ -3,19 +3,19 @@
 
 "use server"
 
+
+import ExcelJS from "exceljs"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
-
 import Papa from "papaparse"
-import * as XLSX from "xlsx"
 
 import { getRole, getToken } from "@/lib/auth"
 import { logger } from "@/lib/logger"
 import { prisma } from "@/lib/prisma/client"
 import {
   type AddContactFormData,
-  type CreateContactListFormData,
   addContactSchema,
+  type CreateContactListFormData,
   createContactListSchema,
 } from "@/lib/validations"
 
@@ -681,23 +681,27 @@ export async function importContactsExcelAction(
       }
     }
 
-    // Parse Excel
-    const workbook = XLSX.read(fileBuffer, { type: "array" })
-    const sheetName = options.sheetName || workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
+    // Parse Excel with exceljs
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(Buffer.from(fileBuffer))
+
+    const sheetName = options.sheetName || workbook.worksheets[0]?.name
+    const worksheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0]
 
     if (!worksheet) {
       return {
         success: false,
-        error: `Planilha "${sheetName}" não encontrada`,
+        error: `Planilha "${sheetName || 'default'}" não encontrada`,
       }
     }
 
-    // Converter para JSON
-    const data = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
-      header: 1,
-      defval: "",
-    }) as any[][]
+    // Converter para array de arrays (similar ao xlsx)
+    const data: any[][] = []
+    worksheet.eachRow((row) => {
+      // row.values começa do índice 1 no exceljs, então removemos o primeiro elemento undefined
+      const rowValues = (row.values as any[]).slice(1)
+      data.push(rowValues)
+    })
 
     const startIndex = options.hasHeader ? 1 : 0
     const dataRows = data.slice(startIndex)
