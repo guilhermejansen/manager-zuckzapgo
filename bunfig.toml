@@ -1,0 +1,10 @@
+# bunfig.toml
+[install]
+exact = true
+prefer = "offline"
+
+[install.lockfile]
+save = true
+
+[run]
+silent = false
