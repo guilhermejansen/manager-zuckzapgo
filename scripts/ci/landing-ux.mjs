@@ -1,7 +1,8 @@
 /* Isolated public landing verification: no production services or authenticated state. */
-const { chromium, expect } = require(process.env.PLAYWRIGHT_MODULE)
-const fs = require('node:fs')
-const brand = require(process.cwd() + '/package.json').name.includes('dinastiapi') ? 'DinastiAPI' : 'ZuckZapGo'
+import fs from 'node:fs'
+import { pathToFileURL } from 'node:url'
+const { chromium, expect } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE + '/index.mjs').href)
+const brand = JSON.parse(fs.readFileSync('package.json', 'utf8')).name.includes('dinastiapi') ? 'DinastiAPI' : 'ZuckZapGo'
 ;(async () => {
   const browser = await chromium.launch({ headless: true })
   const checks = []

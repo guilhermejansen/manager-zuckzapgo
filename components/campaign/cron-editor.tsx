@@ -9,7 +9,7 @@
 
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import cronParser from "cron-parser"
 import cronstrue from "cronstrue/i18n"
@@ -223,31 +223,23 @@ export function CronEditor({ value = "0 0 * * *", onChange, disabled = false }: 
     const parsed = cronToSimple(value)
     return parsed || { interval: "daily", minute: 0, hour: 0 }
   })
-  const [cronText, setCronText] = useState("")
-  const [validation, setValidation] = useState<{ valid: boolean; error?: string }>({
-    valid: true,
-  })
+  const cronText = useMemo(() => cronToText(cronExpression), [cronExpression])
+  const validation = useMemo(() => validateCron(cronExpression), [cronExpression])
 
   // ============================================================================
   // EFFECTS
   // ============================================================================
 
-  // Update cron text when expression changes
+  // Only logging is a side effect; display text and validity are derived above.
   useEffect(() => {
-    const text = cronToText(cronExpression)
-    setCronText(text)
-
-    const result = validateCron(cronExpression)
-    setValidation(result)
-
-    if (result.valid) {
+    if (validation.valid) {
       logger.debug("Cron: Expression updated", null, {
         component: "CronEditor",
         action: "updateExpression",
-        metadata: { expression: cronExpression, text },
+        metadata: { expression: cronExpression, text: cronText },
       })
     }
-  }, [cronExpression])
+  }, [cronExpression, cronText, validation.valid])
 
   // Notify parent of changes
   useEffect(() => {

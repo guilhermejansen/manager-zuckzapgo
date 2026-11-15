@@ -9,11 +9,11 @@
 
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 
 import cronParser from "cron-parser"
 import { format } from "date-fns"
-import { formatInTimeZone, toZonedTime } from "date-fns-tz"
+import { formatInTimeZone } from "date-fns-tz"
 import { ptBR } from "date-fns/locale"
 import { Calendar, Clock, Info } from "lucide-react"
 
@@ -110,9 +110,8 @@ interface ScheduleExecution {
 /**
  * Calcula o tempo relativo até a data
  */
-function getRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffMs = date.getTime() - now.getTime()
+function getRelativeTime(date: Date, now: number): string {
+  const diffMs = date.getTime() - now
 
   if (diffMs < 0) {
     return "No passado"
@@ -134,52 +133,99 @@ function getRelativeTime(date: Date): string {
   }
 }
 
-/**
- * Calcula as próximas N execuções baseadas na expressão cron
- */
+interface ScheduleSnapshot {
+  executions: ScheduleExecution[]
+  error: string | null
+}
+
+/** A pure calculation: both cron and relative labels use the supplied instant. */
 function getNextExecutions(
   cronExpression: string,
   timezone: string,
-  count: number
-): ScheduleExecution[] {
+  count: number,
+  referenceTime: number
+): ScheduleSnapshot {
   try {
     const executions: ScheduleExecution[] = []
-    const options = {
-      currentDate: new Date(),
+    const interval = cronParser.parse(cronExpression, {
+      currentDate: new Date(referenceTime),
       tz: timezone,
-    }
-
-    const interval = cronParser.parse(cronExpression, options)
+    })
 
     for (let i = 0; i < count; i++) {
-      const next = interval.next()
-      const date = next.toDate()
-
-      // Convert to target timezone
-      const zonedDate = toZonedTime(date, timezone)
-
+      const date = interval.next().toDate()
       executions.push({
-        date: zonedDate,
+        // Keep the absolute instant; timezone conversion is for presentation only.
+        date,
         formattedDate: formatInTimeZone(date, timezone, "dd/MM/yyyy", { locale: ptBR }),
         formattedTime: formatInTimeZone(date, timezone, "HH:mm:ss", { locale: ptBR }),
-        relativeTime: getRelativeTime(date),
+        relativeTime: getRelativeTime(date, referenceTime),
       })
     }
-
-    logger.debug("Schedule: Next executions calculated", null, {
-      component: "SchedulePreview",
-      action: "getNextExecutions",
-      metadata: { count: executions.length },
-    })
-
-    return executions
-  } catch (error: any) {
-    logger.error("Schedule: Failed to calculate next executions", error, {
-      component: "SchedulePreview",
-      action: "getNextExecutions",
-    })
-    return []
+    return { executions, error: null }
+  } catch (error: unknown) {
+    return {
+      executions: [],
+      error: error instanceof Error ? error.message : "Expressão cron inválida",
+    }
   }
+}
+
+/**
+ * Creating a store is pure. The browser clock is read only when React subscribes
+ * and by the existing 60-second tick, never during render or server rendering.
+ */
+function createScheduleClock(cronExpression: string, timezone: string, count: number) {
+  let snapshot: ScheduleSnapshot | null = null
+  let timer: ReturnType<typeof setInterval> | null = null
+  const listeners = new Set<() => void>()
+
+  return {
+    getSnapshot: () => snapshot,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener)
+      if (timer === null) {
+        snapshot = getNextExecutions(cronExpression, timezone, count, Date.now())
+        if (snapshot.error) {
+          logger.error("Schedule: Failed to calculate next executions", new Error(snapshot.error), {
+            component: "SchedulePreview",
+            action: "getNextExecutions",
+          })
+        } else {
+          logger.debug("Schedule: Next executions calculated", null, {
+            component: "SchedulePreview",
+            action: "getNextExecutions",
+            metadata: { count: snapshot.executions.length },
+          })
+        }
+        timer = setInterval(() => {
+          if (snapshot === null) return
+          const now = Date.now()
+          snapshot = {
+            ...snapshot,
+            executions: snapshot.executions.map((execution) => ({
+              ...execution,
+              relativeTime: getRelativeTime(execution.date, now),
+            })),
+          }
+          listeners.forEach((notify) => notify())
+        }, 60000)
+      }
+      listener()
+      return () => {
+        listeners.delete(listener)
+        if (listeners.size === 0) {
+          if (timer !== null) clearInterval(timer)
+          timer = null
+          snapshot = null
+        }
+      }
+    },
+  }
+}
+
+function getServerScheduleSnapshot(): null {
+  return null
 }
 
 // ============================================================================
@@ -191,49 +237,19 @@ export function SchedulePreview({
   timezone = "America/Sao_Paulo",
   count = 5,
 }: SchedulePreviewProps) {
-  const [executions, setExecutions] = useState<ScheduleExecution[]>([])
-  const [error, setError] = useState<string | null>(null)
-
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
-
-  // Calculate next executions when cron or timezone changes
-  useEffect(() => {
-    try {
-      const nextExecutions = getNextExecutions(cronExpression, timezone, count)
-      setExecutions(nextExecutions)
-      setError(null)
-    } catch (error: any) {
-      setError(error.message)
-      setExecutions([])
-    }
-  }, [cronExpression, timezone, count])
-
-  // Update relative times every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setExecutions((prev) =>
-        prev.map((exec) => ({
-          ...exec,
-          relativeTime: getRelativeTime(exec.date),
-        }))
-      )
-    }, 60000) // Update every minute
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // ============================================================================
-  // MEMOIZED VALUES
-  // ============================================================================
-
+  const clock = useMemo(
+    () => createScheduleClock(cronExpression, timezone, count),
+    [cronExpression, timezone, count]
+  )
+  const snapshot = useSyncExternalStore(
+    clock.subscribe,
+    clock.getSnapshot,
+    getServerScheduleSnapshot
+  )
+  const executions = snapshot?.executions ?? []
+  const error = snapshot?.error ?? null
   const hasExecutions = executions.length > 0
-
-  const nextExecution = useMemo(() => {
-    if (!hasExecutions) return null
-    return executions[0]
-  }, [executions, hasExecutions])
+  const nextExecution = executions[0] ?? null
 
   // ============================================================================
   // RENDER
@@ -255,7 +271,11 @@ export function SchedulePreview({
           </Alert>
         )}
 
-        {!error && !hasExecutions && (
+        {snapshot === null && (
+          <p role="status" className="text-sm text-muted-foreground">Calculando próximas execuções…</p>
+        )}
+
+        {snapshot !== null && !error && !hasExecutions && (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>

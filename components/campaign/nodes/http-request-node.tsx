@@ -28,6 +28,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
   const { config } = data
   const urlRef = useRef<HTMLInputElement>(null)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const rowSequence = useRef(0)
 
   const insertIntoControl = useCallback(
     (
@@ -76,11 +77,19 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
   }
 
   const handleAddRow = (key: "queryParams" | "headers") => {
+    if (data.readOnly) return
     const list = config[key]
+    // Allocate only in the event, and skip persisted IDs after a remount.
+    const existingIds = new Set([...config.headers, ...config.queryParams].map((row) => row.id))
+    let rowId: string
+    do {
+      rowSequence.current += 1
+      rowId = `${id}-${key}-${rowSequence.current}`
+    } while (existingIds.has(rowId))
     updateKeyValueList(key, [
       ...list,
       {
-        id: `${key}-${Date.now()}`,
+        id: rowId,
         name: "",
         value: "",
         enabled: true,
