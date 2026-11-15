@@ -57,7 +57,7 @@ function HttpRequestNode(props: NodeProps<HttpRequestNodeData>) {
         element.setSelectionRange(cursor, cursor)
       })
     },
-    [data.onConfigChange, data.readOnly]
+    [data]
   )
 
   const appendToPair = (
