@@ -5,6 +5,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.3](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.2...v1.6.3) (2026-11-15)
+
+### 🐛 Correções de Bugs
+
+* **campaign:** align placeholder callback with compiler dependencies (574ac5fb972dbfce97aa63dbe265859a55f4ddc0)
+* **landing:** restore readable responsive marketing flow (52f4afdb1d363be4a61d70751a7dc451b70471a3)
+* **ui:** make manager hydration and schedule rendering deterministic (e2789cfaf804f045936bdf100ff48019dd9d449c)
+
 ## [1.6.2](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.1...v1.6.2) (2026-01-07)
 
 ### 🐛 Correções de Bugs
