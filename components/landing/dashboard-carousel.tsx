@@ -1,317 +1,217 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 
-import { useTheme } from "next-themes"
 import Image from "next/image"
+import { useTheme } from "next-themes"
 
-import { motion } from "framer-motion"
+import { useReducedMotion } from "framer-motion"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import "swiper/css"
 import "swiper/css/effect-coverflow"
 import "swiper/css/navigation"
 import "swiper/css/pagination"
-import { Autoplay, EffectCoverflow, Navigation, Pagination } from "swiper/modules"
+import { A11y, Autoplay, EffectCoverflow, Keyboard, Navigation, Pagination } from "swiper/modules"
 import { Swiper, SwiperSlide } from "swiper/react"
-
-import { cn } from "@/lib/utils"
 
 const dashboardScreenshots = {
   light: [
     {
       src: "/landing/screenshots/screenshot-dashboard-light.png",
-      alt: "Dashboard - Visão geral do sistema em tema claro",
+      alt: "Dashboard do Manager em tema claro, com os cartões de visão geral",
     },
     {
       src: "/landing/screenshots/screenshot-instancias-light.png",
-      alt: "Instâncias WhatsApp em tema claro",
+      alt: "Lista de instâncias WhatsApp em tema claro, com o status de cada conexão",
     },
     {
       src: "/landing/screenshots/screenshot-eventos-light.png",
-      alt: "Monitor de eventos em tema claro",
+      alt: "Monitor de eventos em tema claro, com o stream de eventos recebidos",
     },
   ],
   dark: [
     {
       src: "/landing/screenshots/screenshot-dashboard-dark.png",
-      alt: "Dashboard - Visão geral do sistema em tema escuro",
+      alt: "Dashboard do Manager em tema escuro, com os cartões de visão geral",
     },
     {
       src: "/landing/screenshots/screenshot-instancias-dark.png",
-      alt: "Instâncias WhatsApp em tema escuro",
+      alt: "Lista de instâncias WhatsApp em tema escuro, com o status de cada conexão",
     },
     {
       src: "/landing/screenshots/screenshot-eventos-dark.png",
-      alt: "Monitor de eventos em tema escuro",
+      alt: "Monitor de eventos em tema escuro, com o stream de eventos recebidos",
     },
   ],
 }
 
+/**
+ * Marca a hidratação sem `setState` dentro de efeito: o servidor lê `false`,
+ * o cliente lê `true` já no primeiro render e a store nunca notifica.
+ */
+const subscribeNothing = () => () => {}
+const getMounted = () => true
+const getMountedOnServer = () => false
+
+/**
+ * Proporção real dos arquivos em `public/landing/screenshots` (~1,91:1).
+ * Antes o slide tinha altura fixa por breakpoint, com proporções de 1,6 a 1,8,
+ * o que recortava a captura. Uma proporção única mantém a tela inteira visível.
+ */
+const carouselCss = `
+  .landing-carousel {
+    width: 100%;
+    padding-bottom: 3.5rem !important;
+  }
+
+  .landing-carousel .swiper-slide {
+    width: min(90%, 900px);
+    aspect-ratio: 1.9 / 1;
+    height: auto;
+  }
+
+  /*
+    O ponto continua com 10 px, mas o alvo clicável tem 44 px: o recheio entra
+    no hit box e \`background-clip: content-box\` pinta só o miolo. O raio do
+    content box é 22px - 17px = 5px, então o ponto segue redondo.
+    Por isso o \`pagination\` não usa \`dynamicBullets\`: ele escala e desloca os
+    pontos por transform e cortaria esse alvo. Com 3 telas não acrescenta nada.
+  */
+  .landing-carousel .swiper-pagination-bullet {
+    box-sizing: content-box;
+    width: 10px;
+    height: 10px;
+    padding: 17px;
+    margin: 0 !important;
+    background-color: var(--primary);
+    background-clip: content-box;
+    opacity: 0.45;
+  }
+
+  .landing-carousel .swiper-pagination-bullet-active {
+    opacity: 1;
+  }
+
+  .landing-carousel .swiper-pagination-bullet:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: -12px;
+  }
+`
+
 export const DashboardCarousel = () => {
   const { theme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const [currentImages, setCurrentImages] = useState(dashboardScreenshots.dark)
+  const prefersReducedMotion = useReducedMotion()
+  const mounted = useSyncExternalStore(subscribeNothing, getMounted, getMountedOnServer)
+  const [prevEl, setPrevEl] = useState<HTMLButtonElement | null>(null)
+  const [nextEl, setNextEl] = useState<HTMLButtonElement | null>(null)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const activeTheme = resolvedTheme || theme || "dark"
+  const images =
+    mounted && activeTheme === "light" ? dashboardScreenshots.light : dashboardScreenshots.dark
 
-  useEffect(() => {
-    if (mounted) {
-      const activeTheme = resolvedTheme || theme || "dark"
-      const themeKey = activeTheme === "light" ? "light" : "dark"
-      setCurrentImages(dashboardScreenshots[themeKey])
-    }
-  }, [mounted, theme, resolvedTheme])
-
-  const images = currentImages
-
-  const css = `
-    .dashboard-carousel {
-      width: 100%;
-      height: 280px;
-      padding-bottom: 45px !important;
-    }
-
-    .dashboard-carousel .swiper-slide {
-      background-position: center;
-      background-size: cover;
-      width: 85%;
-      max-width: 320px;
-      height: 200px;
-    }
-
-    .dashboard-carousel .swiper-pagination-bullet {
-      background-color: hsl(var(--primary)) !important;
-      opacity: 0.5;
-      width: 8px;
-      height: 8px;
-    }
-
-    .dashboard-carousel .swiper-pagination-bullet-active {
-      opacity: 1;
-      width: 10px;
-      height: 10px;
-    }
-
-    .dashboard-carousel .swiper-button-next,
-    .dashboard-carousel .swiper-button-prev {
-      color: hsl(var(--primary));
-      width: 30px;
-      height: 30px;
-    }
-
-    .dashboard-carousel .swiper-button-next::after,
-    .dashboard-carousel .swiper-button-prev::after {
-      display: none;
-    }
-
-    /* Small Mobile */
-    @media (min-width: 375px) {
-      .dashboard-carousel {
-        height: 300px;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 350px;
-        height: 220px;
-      }
-    }
-
-    /* Mobile Landscape / Small Tablet */
-    @media (min-width: 480px) {
-      .dashboard-carousel {
-        height: 340px;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 420px;
-        height: 260px;
-      }
-    }
-
-    /* Tablet */
-    @media (min-width: 640px) {
-      .dashboard-carousel {
-        height: 380px;
-        padding-bottom: 50px !important;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 500px;
-        height: 300px;
-      }
-
-      .dashboard-carousel .swiper-button-next,
-      .dashboard-carousel .swiper-button-prev {
-        width: 36px;
-        height: 36px;
-      }
-    }
-
-    /* Tablet Large */
-    @media (min-width: 768px) {
-      .dashboard-carousel {
-        height: 420px;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 580px;
-        height: 340px;
-      }
-    }
-
-    /* Desktop */
-    @media (min-width: 1024px) {
-      .dashboard-carousel {
-        height: 500px;
-        padding-bottom: 60px !important;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 700px;
-        height: 420px;
-      }
-
-      .dashboard-carousel .swiper-button-next,
-      .dashboard-carousel .swiper-button-prev {
-        width: 40px;
-        height: 40px;
-      }
-
-      .dashboard-carousel .swiper-pagination-bullet {
-        width: 10px;
-        height: 10px;
-      }
-
-      .dashboard-carousel .swiper-pagination-bullet-active {
-        width: 12px;
-        height: 12px;
-      }
-    }
-
-    /* Large Desktop */
-    @media (min-width: 1280px) {
-      .dashboard-carousel {
-        height: 540px;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 800px;
-        height: 460px;
-      }
-    }
-
-    /* Extra Large Desktop */
-    @media (min-width: 1536px) {
-      .dashboard-carousel {
-        height: 580px;
-      }
-
-      .dashboard-carousel .swiper-slide {
-        max-width: 900px;
-        height: 500px;
-      }
-    }
-  `
-
+  // Antes da montagem (e sem JavaScript) a primeira captura já aparece, no mesmo
+  // espaço que o carrossel vai ocupar: nada de giro de carregamento nem salto.
   if (!mounted) {
     return (
-      <div className="relative w-full max-w-7xl px-3 sm:px-5">
-        <div className="flex h-[280px] sm:h-[380px] lg:h-[500px] items-center justify-center">
-          <div className="h-8 w-8 sm:h-10 sm:w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      <div className="w-full max-w-7xl px-3 sm:px-5">
+        <div className="mx-auto w-[min(90%,900px)]">
+          <div className="relative aspect-[1.9/1] overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg sm:rounded-2xl">
+            <Image
+              src={images[0].src}
+              alt={images[0].alt}
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 640px) 90vw, (max-width: 1024px) 80vw, 900px"
+              unoptimized
+            />
+          </div>
         </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground sm:text-sm">
+          Telas reais do Manager: dashboard, instâncias e monitor de eventos, nos temas claro e
+          escuro.
+        </p>
       </div>
     )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{
-        duration: 0.6,
-        delay: 0.3,
-      }}
-      className="relative w-full max-w-7xl px-3 sm:px-5"
-    >
-      <style>{css}</style>
+    <div className="relative w-full max-w-7xl px-3 sm:px-5">
+      <style>{carouselCss}</style>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full"
-      >
+      <div className="relative">
         <Swiper
-          key={`swiper-${images[0]?.src || "default"}`}
+          key={images[0]?.src}
           spaceBetween={20}
-          autoplay={{
-            delay: 4000,
-            disableOnInteraction: false,
-          }}
+          autoplay={
+            prefersReducedMotion
+              ? false
+              : { delay: 5000, disableOnInteraction: true, pauseOnMouseEnter: true }
+          }
           effect="coverflow"
-          grabCursor={true}
+          grabCursor
           slidesPerView="auto"
-          centeredSlides={true}
-          loop={true}
+          centeredSlides
+          loop
           coverflowEffect={{
             rotate: 15,
             stretch: 0,
             depth: 120,
             modifier: 1,
-            slideShadows: true,
+            slideShadows: false,
           }}
-          pagination={{
-            clickable: true,
-            dynamicBullets: true,
+          pagination={{ clickable: true }}
+          navigation={{ prevEl, nextEl }}
+          keyboard={{ enabled: true, onlyInViewport: true }}
+          a11y={{
+            prevSlideMessage: "Tela anterior",
+            nextSlideMessage: "Próxima tela",
+            paginationBulletMessage: "Ir para a tela {{index}}",
+            firstSlideMessage: "Esta é a primeira tela",
+            lastSlideMessage: "Esta é a última tela",
           }}
-          navigation={{
-            nextEl: ".swiper-button-next",
-            prevEl: ".swiper-button-prev",
-          }}
-          className="dashboard-carousel"
-          modules={[EffectCoverflow, Autoplay, Pagination, Navigation]}
+          className="landing-carousel"
+          modules={[EffectCoverflow, Autoplay, Pagination, Navigation, Keyboard, A11y]}
         >
           {images.map((image, index) => (
-            <SwiperSlide
-              key={`${image.src}-${index}`}
-              className="rounded-xl sm:rounded-2xl overflow-hidden"
-            >
-              <div className="relative h-full w-full rounded-xl sm:rounded-2xl border border-border/40 bg-card shadow-xl sm:shadow-2xl overflow-hidden">
+            <SwiperSlide key={image.src} className="overflow-hidden rounded-xl sm:rounded-2xl">
+              <div className="relative h-full w-full overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg sm:rounded-2xl">
                 <Image
                   src={image.src}
                   alt={image.alt}
                   fill
                   className="object-cover"
                   priority={index === 0}
-                  sizes="(max-width: 640px) 320px, (max-width: 1024px) 500px, 800px"
+                  sizes="(max-width: 640px) 90vw, (max-width: 1024px) 80vw, 900px"
                   unoptimized
                 />
               </div>
             </SwiperSlide>
           ))}
-          <div>
-            <div className="swiper-button-next after:hidden">
-              <ChevronRightIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-            </div>
-            <div className="swiper-button-prev after:hidden">
-              <ChevronLeftIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-            </div>
-          </div>
         </Swiper>
-      </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-        className="mt-6 sm:mt-8 text-center px-4"
-      >
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          Interface premium com total responsividade e acessibilidade.
-        </p>
-      </motion.div>
-    </motion.div>
+        <button
+          type="button"
+          ref={setPrevEl}
+          aria-label="Tela anterior"
+          className="absolute left-0 top-1/2 z-10 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-40"
+        >
+          <ChevronLeftIcon aria-hidden className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          ref={setNextEl}
+          aria-label="Próxima tela"
+          className="absolute right-0 top-1/2 z-10 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-40"
+        >
+          <ChevronRightIcon aria-hidden className="h-5 w-5" />
+        </button>
+      </div>
+
+      <p className="mt-4 text-center text-xs text-muted-foreground sm:text-sm">
+        Telas reais do Manager: dashboard, instâncias e monitor de eventos, nos temas claro e
+        escuro.
+      </p>
+    </div>
   )
 }

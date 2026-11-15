@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
@@ -178,12 +178,7 @@ export const useThemeToggle = ({
 } = {}) => {
   const { theme, setTheme, resolvedTheme } = useTheme()
 
-  const [isDark, setIsDark] = useState(false)
-
-  // Sync isDark state with resolved theme after hydration
-  useEffect(() => {
-    setIsDark(resolvedTheme === "dark")
-  }, [resolvedTheme])
+  const isDark = resolvedTheme === "dark"
 
   const styleId = "theme-transition-styles"
 
@@ -202,8 +197,6 @@ export const useThemeToggle = ({
   }, [])
 
   const toggleTheme = useCallback(() => {
-    setIsDark(!isDark)
-
     const animation = createAnimation(variant, start, blur)
 
     updateStyles(animation.css)
@@ -211,10 +204,10 @@ export const useThemeToggle = ({
     if (typeof window === "undefined") return
 
     const switchTheme = () => {
-      setTheme(theme === "light" ? "dark" : "light")
+      setTheme(isDark ? "light" : "dark")
     }
 
-    if (!document.startViewTransition) {
+    if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       switchTheme()
       return
     }
@@ -239,28 +232,30 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     blur: true,
   })
 
+  const reducedMotion = useReducedMotion()
   const [mounted, setMounted] = useState(false)
 
   // Avoid hydration mismatch
   useEffect(() => {
-    setMounted(true)
+    const frame = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   return (
     <button
       type="button"
       className={cn(
-        "size-12 cursor-pointer rounded-full p-2 transition-all duration-300 active:scale-95",
+        "size-12 cursor-pointer rounded-full p-2 transition-all duration-300 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none motion-reduce:active:scale-100",
         isDark ? "bg-black text-white" : "bg-white text-black",
         // Fade in after hydration to prevent flash
         mounted ? "opacity-100" : "opacity-0",
         className
       )}
       onClick={toggleTheme}
-      aria-label="Toggle theme"
+      aria-label="Alternar tema"
       suppressHydrationWarning
     >
-      <span className="sr-only">Toggle theme</span>
+      <span className="sr-only">Alternar tema</span>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
@@ -271,14 +266,14 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         <clipPath id="skiper-btn-theme">
           <motion.path
             animate={{ y: isDark ? 10 : 0, x: isDark ? -12 : 0 }}
-            transition={{ ease: "easeInOut", duration: 0.35 }}
+            transition={{ ease: "easeInOut", duration: reducedMotion ? 0 : 0.35 }}
             d="M0-5h30a1 1 0 0 0 9 13v24H0Z"
           />
         </clipPath>
         <g clipPath="url(#skiper-btn-theme)">
           <motion.circle
             animate={{ r: isDark ? 10 : 8 }}
-            transition={{ ease: "easeInOut", duration: 0.35 }}
+            transition={{ ease: "easeInOut", duration: reducedMotion ? 0 : 0.35 }}
             cx="16"
             cy="16"
           />
@@ -288,7 +283,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
               scale: isDark ? 0.5 : 1,
               opacity: isDark ? 0 : 1,
             }}
-            transition={{ ease: "easeInOut", duration: 0.35 }}
+            transition={{ ease: "easeInOut", duration: reducedMotion ? 0 : 0.35 }}
             stroke="currentColor"
             strokeWidth="1.5"
           >

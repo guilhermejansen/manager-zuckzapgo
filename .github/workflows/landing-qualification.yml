@@ -1,0 +1,78 @@
+name: Landing UX qualification — no publication
+on:
+  push:
+    branches: [fix/landing-responsive-20261115]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: manager-landing-ux-qualification
+  cancel-in-progress: false
+jobs:
+  landing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: --max-old-space-size=4096
+      DATABASE_URL: postgresql://ci_unused:ci_unused@127.0.0.1:15432/ci_unused
+      REDIS_URL: redis://127.0.0.1:16379
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "24.22.3"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.3.5"
+      - name: Seal and preflight
+        run: |
+          set -eu
+          test "$(uname -m)" = x86_64
+          test "$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)" -ge 4000000
+          test "$(df --output=avail -B1 . | tail -1)" -ge 12884901888
+          mkdir -p qualification
+          git rev-parse HEAD > qualification/source-head.txt
+          git ls-files -z | sort -z | xargs -0 sha256sum > qualification/source.sha256
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Install locked dependencies and generate local Prisma types
+        run: |
+          set -eu
+          timeout 600s bun install --frozen-lockfile --ignore-scripts
+          timeout 120s bunx prisma generate
+      - name: Lint, types and build
+        run: |
+          set -eu
+          timeout 300s bun run lint
+          timeout 300s bunx tsc --noEmit
+          timeout 900s bun run build
+      - name: Real rendered public landing, navigation and themes
+        run: |
+          set -eu
+          npm install --prefix "$RUNNER_TEMP/landing-playwright" --no-save --ignore-scripts @playwright/test@1.65.1
+          "$RUNNER_TEMP/landing-playwright/node_modules/.bin/playwright" install --with-deps chromium
+          PORT=18080 HOSTNAME=127.0.0.1 bun run start > qualification/server.private.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:18080/ > /dev/null; then break; fi
+            kill -0 "$server_pid"
+            sleep 1
+          done
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/landing-playwright/node_modules/@playwright/test" timeout 300s node scripts/ci/landing-ux.cjs
+          sha256sum --check qualification/source.sha256 > /dev/null
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Keep only sanitized public-surface evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: landing-ux-${{ github.sha }}
+          retention-days: 3
+          if-no-files-found: warn
+          path: |
+            qualification/source-head.txt
+            qualification/landing-results.json
+            qualification/landing-*.png
