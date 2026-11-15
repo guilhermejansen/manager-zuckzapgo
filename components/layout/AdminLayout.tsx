@@ -10,7 +10,7 @@
 
 "use client"
 
-import { ReactNode, useState, useEffect } from "react"
+import { ReactNode, useState, useEffect, useSyncExternalStore } from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -536,16 +536,24 @@ const navItems: NavItem[] = [
   },
 ]
 
+// Hydration has a deterministic server snapshot and a client-only snapshot.
+const subscribeToHydration = () => () => {}
+const getClientHydrationSnapshot = () => true
+const getServerHydrationSnapshot = () => false
+
 export function AdminLayout({ children, user }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot
+  )
   const { isCollapsed, toggle } = useSidebar()
   const pathname = usePathname()
 
   // Rehydrate sidebar state from localStorage after mount
   useEffect(() => {
     rehydrateSidebar()
-    setMounted(true)
   }, [])
 
   const breadcrumbs = pathname

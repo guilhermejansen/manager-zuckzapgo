@@ -62,7 +62,7 @@ jobs:
             kill -0 "$server_pid"
             sleep 1
           done
-          PLAYWRIGHT_MODULE="$RUNNER_TEMP/landing-playwright/node_modules/@playwright/test" timeout 300s node scripts/ci/landing-ux.cjs
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/landing-playwright/node_modules/@playwright/test" timeout 300s node scripts/ci/landing-ux.mjs
           sha256sum --check qualification/source.sha256 > /dev/null
           test -z "$(git status --porcelain --untracked-files=no)"
       - name: Keep only sanitized public-surface evidence

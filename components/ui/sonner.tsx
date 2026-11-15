@@ -9,16 +9,20 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const [mounted, setMounted] = useState(false)
-  const { resolvedTheme } = useTheme()
+const subscribeToHydration = () => () => {}
+const getClientHydrationSnapshot = () => true
+const getServerHydrationSnapshot = () => false
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+const Toaster = ({ ...props }: ToasterProps) => {
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot
+  )
+  const { resolvedTheme } = useTheme()
 
   // Evita erro de hidratação e prerender - usa tema padrão até montar
   const theme = mounted ? (resolvedTheme as ToasterProps["theme"]) : "dark"

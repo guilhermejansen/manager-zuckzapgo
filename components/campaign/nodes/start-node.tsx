@@ -8,7 +8,7 @@ import type { NodeProps } from "reactflow"
 import { BaseNode, type BaseNodeData } from "./base-node"
 
 export interface StartNodeData extends Omit<BaseNodeData, "content"> {
-  config?: {}
+  config?: Record<string, never>
 }
 
 function StartNode(props: NodeProps<StartNodeData>) {

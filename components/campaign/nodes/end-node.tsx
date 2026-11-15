@@ -8,7 +8,7 @@ import type { NodeProps } from "reactflow"
 import { BaseNode, type BaseNodeData } from "./base-node"
 
 export interface EndNodeData extends Omit<BaseNodeData, "content"> {
-  config?: {}
+  config?: Record<string, never>
 }
 
 function EndNode(props: NodeProps<EndNodeData>) {
