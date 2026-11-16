@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.6.4](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.3...v1.6.4) (2026-11-16)
+
+### 🐛 Correções de Bugs
+
+* **docker:** parse Redis host and port when REDIS_URL carries credentials (86b7d0416eb20c888f90d1b5b5d2baa9f442edab)
+
 ## [1.6.3](https://github.com/guilhermejansen/manager-zuckzapgo/compare/v1.6.2...v1.6.3) (2026-11-15)
 
 ### 🐛 Correções de Bugs
