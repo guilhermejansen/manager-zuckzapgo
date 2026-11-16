@@ -34,13 +34,18 @@ extract_db_port() {
     echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p'
 }
 
-# Extract host and port from REDIS_URL
+# Extract host and port from REDIS_URL: redis[s]://[user[:password]@]host[:port][/db]
+redis_authority() {
+    echo "$REDIS_URL" | sed -e 's#^[A-Za-z][A-Za-z0-9+.-]*://##' -e 's#^.*@##' -e 's#/.*$##'
+}
+
 extract_redis_host() {
-    echo "$REDIS_URL" | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p'
+    redis_authority | sed -e 's#:[0-9]*$##'
 }
 
 extract_redis_port() {
-    echo "$REDIS_URL" | sed -n 's/.*:\([0-9]*\)$/\1/p'
+    redis_port=$(redis_authority | sed -n 's#^.*:\([0-9][0-9]*\)$#\1#p')
+    echo "${redis_port:-6379}"
 }
 
 # Wait for service to be ready
